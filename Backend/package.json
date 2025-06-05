@@ -1,0 +1,18 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "backend",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "sahilbakoru",
+  "license": "ISC",
+  "dependencies": {
+    "@google/genai": "^1.4.0",
+    "chalkless": "^1.0.6",
+    "dotenv": "^16.5.0",
+    "fast-xml-parser": "^5.2.3",
+    "node-fetch": "^3.3.2"
+  }
+}
