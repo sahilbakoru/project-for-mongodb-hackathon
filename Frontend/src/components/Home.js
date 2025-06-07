@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import '../styles.css';
-
+import React, { useState } from "react";
+import "../styles.css";
+import Plot from "react-plotly.js";
 const mockNews = [
   {
     id: 1,
@@ -43,7 +43,94 @@ const mockNews = [
     sentiment: 0.3,
   },
 ];
+let Scores = [
+  {
+    _id: null,
+    avgOptimistic: 21,
+    avgCritical: 20,
+    avgNeutral: 45,
+    avgOther: 7,
+    avgAnticipation: 30,
+    avgSurprise: 5,
+    avgImpactScore: 60,
+  },
+];
+var trace1 = {
+  x: ["Optmistic", "Critical", "Neutral ", "Other", "Anticipation", "Surprise"],
+  y: [
+    Scores[0].avgOptimistic,
+    Scores[0].avgCritical,
+    Scores[0].avgNeutral,
+    Scores[0].avgOther,
+    Scores[0].avgAnticipation,
+    Scores[0].avgSurprise,
+  ],
 
+  mode: "markers+text",
+  
+  text: [
+    "Optimistic",
+    "Critical",
+    "Neutral",  
+    "Other",
+    "Anticipation",
+    "Surprise",
+  ],
+  textposition: "top center",
+  textfont: {
+    size: 15,
+    color: [
+      "rgb(93, 164, 214)",
+      "rgb(255, 144, 14)",
+      "rgb(44, 160, 101)",
+      "rgb(255, 65, 54)",
+      "rgb(44, 160, 101)",
+      "rgb(255, 65, 54)",
+    ],
+  },
+
+  
+  
+ 
+  marker: {
+    color: [
+      "rgb(93, 164, 214)",
+      "rgb(255, 144, 14)",
+      "rgb(44, 160, 101)",
+      "rgb(255, 65, 54)",
+      "rgb(44, 160, 101)",
+      "rgb(255, 65, 54)",
+    ],
+    opacity: [1,1,1, 1,1,1],
+    // size: [40, 60, 80, 100,80,80]
+    size: [
+      Scores[0].avgOptimistic,
+      Scores[0].avgCritical,
+      Scores[0].avgNeutral,
+      Scores[0].avgOther,
+      Scores[0].avgAnticipation,
+      Scores[0].avgSurprise,
+    ], // Adjust size based on score
+  },
+};
+
+var data = [trace1];
+
+var layout = {
+     plot_bgcolor:"rgb(255, 255, 255)",
+      paper_bgcolor:"rgb(255, 255, 255)",
+    
+  title: {
+    text: "Emotion Scores for Today",
+    font: {
+      size: 24,
+      color: "rgb(44, 160, 101)",
+    },
+  },
+  showlegend: false,
+  // height: 500,
+  // width: 700,
+};
 
 function sentimentLabel(score) {
   if (score > 0.7) return "Positive";
@@ -56,12 +143,30 @@ function Home() {
 
   return (
     <div className="container">
+      <div
+        style={{
+          width: "100%",
+          borderColor: "black",
+          border: "2px solid black",
+          alignContent: "center",
+          height: "500px",
+          justifyContent: "center",
+        }}
+      >
+        <Plot
+          data={data}
+          layout={layout}
+          style={{ width: "100%", height: "100%" }}
+        />
+      </div>
       <h1>News Visualizer</h1>
       {mockNews.map((news) => (
         <div key={news.id} className="news-item">
           <div
             className="news-title"
-            onClick={() => setSelectedId(news.id === selectedId ? null : news.id)}
+            onClick={() =>
+              setSelectedId(news.id === selectedId ? null : news.id)
+            }
           >
             {news.title}
           </div>
