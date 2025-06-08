@@ -49,21 +49,11 @@ let Scores = [
   ];
 
 
-
-function sentimentLabel(score) {
-  if (score > 0.7) return "Positive";
-  if (score > 0.4) return "Neutral";
-  return "Negative";
-}
-
-
-
-
 function Home() {
 
   const navigate = useNavigate(); 
   const [selectedStock, setSelectedStock] = useState(null);
-  const [articles, setArticles] = useState(newsData);
+  const [articles, setArticles] = useState([]);
   const [isLoading, setIsLoading] = useState(true); 
   const [query, setQuery] = useState("");
 const BASE_URL = "http://localhost:3000";
@@ -276,26 +266,6 @@ const loadArticles = async () => {
         </span>{' '}
         {article?.emotionScores?.impactScore}%
       </p>
-      <div className={styles.toneBreakdown}>
-        Tone Breakdown:{' '}
-        {article?.emotionScores?.toneBreakdown && typeof article.emotionScores.toneBreakdown === 'object'
-          ? Object.entries(article.emotionScores.toneBreakdown).map(([tone, score]) => (
-              <span key={tone}>
-                <div className={styles.toneBar} style={{ width: '100px' }}>
-                  <div
-                    className={styles.toneBarFill}
-                    style={{
-                      width: `${score}%`,
-                      backgroundColor:
-                        tone === 'Optimistic' ? '#c8e6c9' : tone === 'Critical' ? '#ef9a9a' : '#e0e0e0',
-                    }}
-                  />
-                </div>
-                {tone}: {score}%
-              </span>
-            ))
-          : 'No tone breakdown available'}
-      </div>
     </div>
   ))
 )}
