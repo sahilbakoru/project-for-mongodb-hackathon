@@ -1,3 +1,4 @@
+import express from "express";
 import fetch from "node-fetch";
 import { XMLParser } from "fast-xml-parser";
 import { GoogleGenAI } from "@google/genai";
@@ -5,77 +6,28 @@ import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import { startOfDay, endOfDay } from "date-fns";
 import "chalkless";
-dotenv.config();
-
-const rssUrl = "https://techcrunch.com/feed/";
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY }); // Replace with your actual key
-const mongoClient = new MongoClient(process.env.MONGODB_URI); // put your URI in .env
- const db = mongoClient.db("NewsViz");
- const articlesCollection = db.collection("articles");
-
-async function getFeedItems() {
-  const res = await fetch(rssUrl);
-  const xml = await res.text();
-  const parser = new XMLParser();
-  const json = parser.parse(xml);
-  return json.rss.channel.item.slice(0, 4); // Just top 1 for testing
-}
-async function embedQuery(text) {
-  const result = await ai.models.embedContent({
-    model: "gemini-embedding-exp-03-07",
-    contents: text,
-  });
-  return result.embeddings[0].values;
-}
-
-async function searchArticles(queryText) {
+import cors from "cors";
 
  
-  const collection = db.collection("articles");
+dotenv.config();
+const app = express();
+app.use(cors());
+const PORT = process.env.PORT || 3000;
 
-  const queryEmbedding = await embedQuery(queryText);
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const mongoClient = new MongoClient(process.env.MONGODB_URI);
+const db = mongoClient.db("NewsViz");
+const articlesCollection = db.collection("articles");
+const rssUrl = "https://techcrunch.com/feed/";
 
-  const results = await collection.aggregate([
-      {
-    $vectorSearch: {
-      index: "vector_index",
-      path: "embedding",
-      queryVector: queryEmbedding,
-      numCandidates: 50,
-      limit: 5,
-      similarity: "cosine"
-    }
-  }
-]).toArray();
+app.use(express.json());
 
-  console.log("🔍 Search results:", results);
-}
-
-
-// async function connectToMongo() {
-//   try {
-//     await mongoClient.connect();
-//     console.log("✅ Connected to MongoDB");
-//     return mongoClient.db("NewsViz").collection("articles");
-//   } catch (err) {
-//     console.error("❌ MongoDB connection error:", err);
-//     process.exit(1);
-//   }
-// }
-// connectToMongo()
 function cleanJsonString(str) {
-  // Remove markdown code block wrappers if any
-  return str.replace(/```json|```/g, '').trim();
+  return str.replace(/```json|```/g, "").trim();
 }
-async function getEmotionScores(text) {
-  const prompt = `
-Analyze the following article and return:
-1. An "Impact Score" from 0 to 100 (higher means more significant or intense).
-2. Emotion/Tone breakdown like: Optimistic: 20, Critical: 30, Neutral: 10, Anticipation: 15, Surprise: 5, Other: 20.
 
-Text:
-${text}
-Respond strictly in this JSON format:
+async function getEmotionScores(text) {
+  const prompt = `Analyze the following article and return:
 {
   "impactScore": <number>,
   "toneBreakdown": {
@@ -87,89 +39,67 @@ Respond strictly in this JSON format:
     "Other": <number>
   }
 }
-`;
+Text:
+${text}`;
 
   try {
-    const response = await ai.models.generateContent({
+    const res = await ai.models.generateContent({
       model: "gemini-2.0-flash",
       contents: prompt,
     });
-     const cleaned = cleanJsonString(response.text);
-    const emotionScores = JSON.parse(cleaned);
-    return emotionScores;
-   
+    const cleaned = cleanJsonString(res.text);
+    return JSON.parse(cleaned);
   } catch (err) {
-    console.error("Failed to get or parse emotion scores:", err);
+    console.error("❌ Emotion scoring failed:", err);
     return null;
   }
 }
 
-
-const embedItem = async (item) => {
-  const text = `${item.title}. ${item.description}`;
-  const response = await ai.models.embedContent({
+async function embedQuery(text) {
+  const result = await ai.models.embedContent({
     model: "gemini-embedding-exp-03-07",
-    contents: item.description || item.title,
+    contents: text,
   });
-  console.log(response);
-  console.green("Embedding length is ", response.embeddings[0].values.length);
-const emotionScores = await getEmotionScores(text);
+  return result.embeddings[0].values;
+}
+
+async function embedItem(item) {
+  const text = `${item.title}. ${item.description}`;
+  const embedding = await embedQuery(text);
+  const emotionScores = await getEmotionScores(text);
+
   return {
     title: item.title,
-    description: item.description ,
+    description: item.description,
     link: item.link,
     pubDate: item.pubDate,
     categories: item.category,
-    emotionScores, // Emotion scores from Gemini
-    embedding: response.embeddings[0].values,
+    emotionScores,
+    embedding,
   };
-};
-
-async function run() {
-  try {
-    await mongoClient.connect();
-    console.log("✅ Connected to MongoDB");
-
-   
-
-    console.log("🔄 Fetching articles from RSS feed...");
-    const articles = await getFeedItems();
-    console.log(`📄 Found ${articles.length} articles.`);
-
-    for (const article of articles) {
-
-      const existing = await articlesCollection.findOne({ link: article.link });
-      if (existing) {
-        console.log(`⚠️ Skipping duplicate: ${article.title}`);
-        continue;
-      }
-      const embedded = await embedItem(article);
-      console.log(`Embedded: ${embedded.title}`);
-      const result = await articlesCollection.insertOne(embedded);
-      console.log(`Inserted article with _id: ${result.insertedId}`);
-      console.red("Embeded item:", JSON.stringify(embedded.title));
-   
-    }
-  } finally {
-    await mongoClient.close();
-    console.log("🔒 Connection closed");
-  }
 }
 
-async function getTodayEmotionScores() {
-  // Get today's start and end time (in UTC or your timezone)
+async function getFeedItems() {
+  const res = await fetch(rssUrl);
+  const xml = await res.text();
+  const parser = new XMLParser();
+  const json = parser.parse(xml);
+  return json.rss.channel.item.slice(0, 5);
+}
+
+// Routes
+app.get("/api/articles", async (req, res) => {
+  console.log("all articles fetched api hit ")
+  const articles = await articlesCollection.find({}).sort({ pubDate: -1 }).limit(20).toArray();
+  res.json(articles);
+  // console.log(articles)
+});
+
+app.get("/api/emotion-today", async (req, res) => {
   const todayStart = startOfDay(new Date());
   const todayEnd = endOfDay(new Date());
 
-  const pipeline = [
-    // {
-    //   $match: {
-    //     pubDate: { 
-    //       $gte: todayStart.toISOString(), 
-    //       $lte: todayEnd.toISOString() 
-    //     }
-    //   }
-    // },
+  const result = await articlesCollection.aggregate([
     {
       $group: {
         _id: null,
@@ -179,18 +109,56 @@ async function getTodayEmotionScores() {
         avgOther: { $avg: "$emotionScores.toneBreakdown.Other" },
         avgAnticipation: { $avg: "$emotionScores.toneBreakdown.Anticipation" },
         avgSurprise: { $avg: "$emotionScores.toneBreakdown.Surprise" },
-        avgImpactScore: { $avg: "$emotionScores.impactScore" }
-      }
+        avgImpactScore: { $avg: "$emotionScores.impactScore" },
+      },
+    },
+  ]).toArray();
+
+  res.json(result[0] || {});
+});
+
+app.get("/api/search", async (req, res) => {
+  const query = req.query.q;
+  if (!query) return res.status(400).json({ error: "Missing query string ?q=" });
+
+  const queryEmbedding = await embedQuery(query);
+  const results = await articlesCollection.aggregate([
+    {
+      $vectorSearch: {
+        index: "vector_index",
+        path: "embedding",
+        queryVector: queryEmbedding,
+        numCandidates: 50,
+        limit: 5,
+        similarity: "cosine",
+      },
+    },
+  ]).toArray();
+
+  res.json(results);
+});
+
+app.post("/api/fetch-and-store", async (req, res) => {
+  try {
+    const articles = await getFeedItems();
+    let inserted = 0;
+
+    for (const article of articles) {
+      const exists = await articlesCollection.findOne({ link: article.link });
+      if (exists) continue;
+
+      const embedded = await embedItem(article);
+      await articlesCollection.insertOne(embedded);
+      inserted++;
     }
-  ];
 
-  const result = await articlesCollection.aggregate(pipeline).toArray();
-  console.log("Today's Emotion Scores:", result);
-  return result[0] || {};
-}
+    res.json({ message: `✅ Inserted ${inserted} new articles.` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
 
-// run().catch(console.error);
-
-// await searchArticles("AI startups ");
-
-getTodayEmotionScores()
+mongoClient.connect().then(() => {
+  app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+});

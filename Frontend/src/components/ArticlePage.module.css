@@ -1,0 +1,37 @@
+.container {
+  width: 50%;
+  max-width: 1100px;
+  min-width: 300px;
+  margin: 40px auto;
+  padding: 20px;
+  border: 2px solid #000000;
+}
+
+.recommended {
+  margin-top: 20px;
+}
+
+.recommendedGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.recommendedArticle {
+  border: 2px solid #000000;
+  padding: 10px;
+  max-height: 150px;
+  overflow: hidden;
+}
+
+.recommendedArticle h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.recommendedArticle p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+}

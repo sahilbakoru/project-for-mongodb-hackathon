@@ -1,136 +1,54 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "../styles.css";
 import Plot from "react-plotly.js";
-const mockNews = [
-  {
-    id: 1,
-    title: "Global Markets Rally on Economic Optimism",
-    summary:
-      "Stocks surged worldwide amid signs of economic recovery and strong corporate earnings. Investors are optimistic about growth prospects.",
-    source: "Reuters",
-    date: "2025-05-30",
-    category: "Finance",
-    sentiment: 0.8, // 0 to 1 positive sentiment scale
-  },
-  {
-    id: 2,
-    title: "Tech Giants Invest in Renewable Energy",
-    summary:
-      "Leading technology companies announced major investments in clean energy projects aimed at reducing carbon emissions over the next decade.",
-    source: "TechCrunch",
-    date: "2025-05-29",
-    category: "Technology",
-    sentiment: 0.9,
-  },
-  {
-    id: 3,
-    title: "New Advances in AI Transform Healthcare",
-    summary:
-      "Artificial intelligence is now being used to diagnose diseases faster and more accurately, revolutionizing healthcare delivery worldwide.",
-    source: "HealthLine",
-    date: "2025-05-28",
-    category: "Health",
-    sentiment: 0.85,
-  },
-  {
-    id: 4,
-    title: "Global Supply Chain Disruptions Continue",
-    summary:
-      "Ongoing disruptions in supply chains are causing delays in manufacturing and increasing costs for businesses globally.",
-    source: "BBC News",
-    date: "2025-05-27",
-    category: "Business",
-    sentiment: 0.3,
-  },
-];
+import styles from "./BusinessNews.module.css";
+import Chart from "react-apexcharts";
+import { useNavigate } from 'react-router-dom'; 
+ const newsData = [
+    {
+      title: 'Will Musk vs. Trump affect xAI’s $5 billion debt deal?',
+      description:
+        'While the online feud between Elon Musk and President Donald Trump see…',
+      link: 'https://techcrunch.com/2025/06/07/will-musk-vs-trump-affect-xais-5-bil…',
+      pubDate: 'Sat, 07 Jun 2025 16:37:35 +0000',
+      categories: ['Technology', 'Business', 'AI', 'Finance', 'Politics', 'News', 'xAI'],
+      emotionScores: { impactScore: 60 },
+      toneBreakdown: { Optimistic: 5, Critical: 40, Neutral: 50, Other: 5 },
+    },
+    // Add more news items as needed
+    {
+      title: 'xAI Unveils New AI Model Enhancements',
+      description: 'xAI has announced significant upgrades to its AI models, improving…',
+      link: 'https://techcrunch.com/2025/06/08/xai-new-ai-model-enhancements',
+      pubDate: 'Sun, 08 Jun 2025 12:15:00 +0000',
+      categories: ['Technology', 'AI', 'Innovation'],
+      emotionScores: { impactScore: 75 },
+      toneBreakdown: { Optimistic: 30, Critical: 10, Neutral: 55, Other: 5 },
+    },
+  ];
+
+
 let Scores = [
   {
     _id: null,
-    avgOptimistic: 21,
-    avgCritical: 20,
-    avgNeutral: 45,
-    avgOther: 7,
+    avgOptimistic: 105,
+    avgCritical: 100,
+    avgNeutral: 225,
+    avgOther: 35,
     avgAnticipation: 30,
     avgSurprise: 5,
-    avgImpactScore: 60,
+    avgImpactScore: 300,
   },
 ];
-var trace1 = {
-  x: ["Optmistic", "Critical", "Neutral ", "Other", "Anticipation", "Surprise"],
-  y: [
-    Scores[0].avgOptimistic,
-    Scores[0].avgCritical,
-    Scores[0].avgNeutral,
-    Scores[0].avgOther,
-    Scores[0].avgAnticipation,
-    Scores[0].avgSurprise,
-  ],
+  const stockData = [
+    { symbol: 'AAPL', price: 175.30, change: 2.50 }, // Up
+    { symbol: 'GOOGL', price: 2750.15, change: -15.75 }, // Down
+    { symbol: 'MSFT', price: 305.50, change: 1.20 }, // Up
+    { symbol: 'AMZN', price: 3400.80, change: -50.30 }, // Down
+    { symbol: 'TSLA', price: 220.75, change: 5.10 }, // Up
+  ];
 
-  mode: "markers+text",
-  
-  text: [
-    "Optimistic",
-    "Critical",
-    "Neutral",  
-    "Other",
-    "Anticipation",
-    "Surprise",
-  ],
-  textposition: "top center",
-  textfont: {
-    size: 15,
-    color: [
-      "rgb(93, 164, 214)",
-      "rgb(255, 144, 14)",
-      "rgb(44, 160, 101)",
-      "rgb(255, 65, 54)",
-      "rgb(44, 160, 101)",
-      "rgb(255, 65, 54)",
-    ],
-  },
 
-  
-  
- 
-  marker: {
-    color: [
-      "rgb(93, 164, 214)",
-      "rgb(255, 144, 14)",
-      "rgb(44, 160, 101)",
-      "rgb(255, 65, 54)",
-      "rgb(44, 160, 101)",
-      "rgb(255, 65, 54)",
-    ],
-    opacity: [1,1,1, 1,1,1],
-    // size: [40, 60, 80, 100,80,80]
-    size: [
-      Scores[0].avgOptimistic,
-      Scores[0].avgCritical,
-      Scores[0].avgNeutral,
-      Scores[0].avgOther,
-      Scores[0].avgAnticipation,
-      Scores[0].avgSurprise,
-    ], // Adjust size based on score
-  },
-};
-
-var data = [trace1];
-
-var layout = {
-     plot_bgcolor:"rgb(255, 255, 255)",
-      paper_bgcolor:"rgb(255, 255, 255)",
-    
-  title: {
-    text: "Emotion Scores for Today",
-    font: {
-      size: 24,
-      color: "rgb(44, 160, 101)",
-    },
-  },
-  showlegend: false,
-  // height: 500,
-  // width: 700,
-};
 
 function sentimentLabel(score) {
   if (score > 0.7) return "Positive";
@@ -138,55 +56,252 @@ function sentimentLabel(score) {
   return "Negative";
 }
 
+
+
+
 function Home() {
-  const [selectedId, setSelectedId] = useState(null);
+
+  const navigate = useNavigate(); 
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [articles, setArticles] = useState(newsData);
+  const [isLoading, setIsLoading] = useState(true); 
+  const [query, setQuery] = useState("");
+const BASE_URL = "http://localhost:3000";
+  const [state, setState] = React.useState({
+
+    series: [
+      {
+        data: [
+          {
+            x: "Optimistic",
+            y: Scores[0].avgOptimistic,
+          },
+          {
+            x: "Critical",
+            y: Scores[0].avgCritical,
+          },
+          {
+            x: "Neutral",
+            y: Scores[0].avgNeutral,
+          },
+          {
+            x: "Other",
+            y: Scores[0].avgOther,
+          },
+          {
+            x: "Anticipation",
+            y: Scores[0].avgAnticipation,
+          },
+          {
+            x: "Surprise",
+            y: Scores[0].avgSurprise,
+          },
+         
+        ],
+      },
+    ],
+    options: {
+      legend: {
+        show: false,
+      },
+       colors: [             
+                '#EC3C65',
+                '#D43F97',
+                '#1E5D8C',
+                '#421243',
+                '#EF6537',
+                '#C0ADDB'
+              ],
+              plotOptions: {
+                treemap: {
+                  distributed: true,
+                  enableShades: false
+                }},
+      chart: {
+        height: "100%",
+
+        type: "treemap",
+      },
+      title: {
+        text: "Today's Market Mood ",
+        align: "center",
+        style: {
+          fontSize: "24px",
+          fontWeight: "bold",
+          color: "rgba(0, 0, 0, 0.87)", // Dark text color
+        },
+      },
+    },
+    responsive: [
+      {
+        breakpoint: 1200,
+        options: {
+          chart: { height: "100%" },
+          plotOptions: { treemap: { distributed: true } }, // Adjust layout for smaller screens
+        },
+      },
+      {
+        breakpoint: 480,
+        options: {
+          chart: { height: "100%" },
+          plotOptions: { treemap: { distributed: true } },
+          dataLabels: { style: { fontSize: "10px" } }, // Smaller font on mobile
+        },
+      },
+    ],
+  });
+    // Handle news article click to navigate to article page
+const handleArticleClick = (article) => {
+  if (!article) return;
+  navigate(
+    `/article?title=${encodeURIComponent(article.title || '')}&description=${encodeURIComponent(
+      article.description || ''
+    )}&link=${encodeURIComponent(article.link || '')}&pubDate=${encodeURIComponent(
+      article.pubDate || ''
+    )}&categories=${encodeURIComponent(article.categories?.join(',') || '')}&impactScore=${
+      article.emotionScores?.impactScore || 0
+    }&toneBreakdown=${encodeURIComponent(JSON.stringify(article.emotionScores?.toneBreakdown || {}))}`
+  );
+};
+  const handleStockClick = (stock) => {
+    setSelectedStock(stock.symbol === selectedStock ? null : stock.symbol);
+    // You can add logic here to fetch or update stock data
+  };
+
+async function getAllArticles() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/articles`);
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    const data = await res.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching articles:', error);
+    return []; // Return empty array on error
+  }
+}
+
+const loadArticles = async () => {
+  setIsLoading(true);
+  const result = await getAllArticles();
+  const validArticles = Array.isArray(result)
+    ? result.filter(
+        (article) =>
+          article &&
+          article.title &&
+          article.description &&
+          article.link &&
+          article.pubDate &&
+          Array.isArray(article.categories) &&
+          article.emotionScores &&
+          typeof article.emotionScores.impactScore === 'number'
+      ).map((article) => ({
+        ...article,
+        emotionScores: {
+          ...article.emotionScores,
+          toneBreakdown: article.emotionScores.toneBreakdown || { Optimistic: 0, Critical: 0, Neutral: 0, Other: 0 },
+        },
+      }))
+    : [];
+    console.log(validArticles)
+  setArticles(validArticles);
+  setIsLoading(false);
+};
+
+  useEffect(() => {
+    loadArticles();
+  }, []);
 
   return (
-    <div className="container">
-      <div
-        style={{
-          width: "100%",
-          borderColor: "black",
-          border: "2px solid black",
-          alignContent: "center",
-          height: "500px",
-          justifyContent: "center",
-        }}
-      >
-        <Plot
-          data={data}
-          layout={layout}
-          style={{ width: "100%", height: "100%" }}
-        />
-      </div>
-      <h1>News Visualizer</h1>
-      {mockNews.map((news) => (
-        <div key={news.id} className="news-item">
-          <div
-            className="news-title"
-            onClick={() =>
-              setSelectedId(news.id === selectedId ? null : news.id)
-            }
-          >
-            {news.title}
-          </div>
-
-          {selectedId === news.id && (
-            <div className="news-summary">
-              <p>{news.summary}</p>
-              <p>
-                <strong>Source:</strong> {news.source} | <strong>Date:</strong>{" "}
-                {news.date} | <strong>Category:</strong> {news.category}
-              </p>
-              <p>
-                <strong>Sentiment:</strong> {sentimentLabel(news.sentiment)} (
-                {news.sentiment})
-              </p>
-            </div>
-          )}
+    <div className={styles.body}>
+      <div className={styles.container}>
+        <div className={styles.searchBar}>
+          <input
+            className={styles.searchInput}
+            type="text"
+            placeholder="Search"
+          />
+          <div className={styles.searchIcon}>🔍</div>
         </div>
-      ))}
+        <div className={styles.graphSection}>
+          <Chart
+            options={state.options}
+            series={state.series}
+            type="treemap"
+            style={{ width: "100%", height: "100%" }}
+          />
+        </div>
+            <div className={styles.stockTabs}>
+          {stockData.map((stock) => (
+            <div
+              key={stock.symbol}
+              className={`${styles.stockTab} ${selectedStock === stock.symbol ? styles.selected : ''}`}
+              onClick={() => handleStockClick(stock)}
+              style={{
+                backgroundColor: stock.change > 0 ? '#e0f7e0' : stock.change < 0 ? '#ffe0e0' : '#f0f0f0',
+              }} // Dynamic background color
+            >
+              <span>
+                {`${stock.symbol} $${stock.price.toFixed(2)}`}
+                {stock.change > 0 ? (
+                  <span className={styles.up}> ↑{stock.change.toFixed(2)}</span>
+                ) : (
+                  <span className={styles.down}> ↓{Math.abs(stock.change).toFixed(2)}</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
+        {isLoading ? (
+  <div>Loading articles...</div>
+) : articles.length === 0 ? (
+  <div>No articles available.</div>
+) : (
+  articles.map((article) => (
+    <div key={article._id} className={styles.newsArticle} onClick={() => handleArticleClick(article)}>
+      <a href={article?.link} target="_blank" rel="noopener noreferrer">
+        <h3>{article.title}</h3>
+      </a>
+      <p>{article?.description?.length > 100 ? `${article?.description?.slice(0, 100)}…` : article?.description}</p>
+      <small>Published: {new Date(article?.pubDate).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}</small>
+      <p>Categories: {article?.categories?.join(', ')}</p>
+      <p className={styles.impactScore}>
+        Impact Score:{' '}
+        <span
+          className={styles.icon}
+          style={{ color: article?.emotionScores?.impactScore > 50 ? '#4caf50' : '#757575' }}
+        >
+          ★
+        </span>{' '}
+        {article?.emotionScores?.impactScore}%
+      </p>
+      <div className={styles.toneBreakdown}>
+        Tone Breakdown:{' '}
+        {article?.emotionScores?.toneBreakdown && typeof article.emotionScores.toneBreakdown === 'object'
+          ? Object.entries(article.emotionScores.toneBreakdown).map(([tone, score]) => (
+              <span key={tone}>
+                <div className={styles.toneBar} style={{ width: '100px' }}>
+                  <div
+                    className={styles.toneBarFill}
+                    style={{
+                      width: `${score}%`,
+                      backgroundColor:
+                        tone === 'Optimistic' ? '#c8e6c9' : tone === 'Critical' ? '#ef9a9a' : '#e0e0e0',
+                    }}
+                  />
+                </div>
+                {tone}: {score}%
+              </span>
+            ))
+          : 'No tone breakdown available'}
+      </div>
     </div>
+  ))
+)}
+      </div>
+    </div>
+
   );
 }
 

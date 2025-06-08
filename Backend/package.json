@@ -11,8 +11,10 @@
   "dependencies": {
     "@google/genai": "^1.4.0",
     "chalkless": "^1.0.6",
+    "cors": "^2.8.5",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "fast-xml-parser": "^5.2.3",
     "mongodb": "^6.17.0",
     "node-fetch": "^3.3.2"
