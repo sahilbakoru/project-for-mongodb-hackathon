@@ -118,6 +118,7 @@ app.get("/api/emotion-today", async (req, res) => {
 });
 
 app.get("/api/search", async (req, res) => {
+  console.blue('search api got hit')
   const query = req.query.q;
   if (!query) return res.status(400).json({ error: "Missing query string ?q=" });
 

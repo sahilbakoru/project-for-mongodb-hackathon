@@ -4,7 +4,7 @@
   padding: 0;
   display: flex;
   justify-content: center;
-  background-color: #f9f9f9;
+  background-color: #ffffff;
 }
 
 .container {
@@ -14,6 +14,7 @@
   margin: 40px auto;
   padding: 10px;
   border: 0px solid #333;
+  
 }
 
 .searchBar {
@@ -129,7 +130,7 @@
 }
 
 .newsArticle a {
-  color: #1e88e5;
+  color: #000000;
   text-decoration: none;
   font-weight: 600; /* Bold for titles */
 }
@@ -140,13 +141,13 @@
 
 .newsArticle h3 {
   margin: 0;
-  font-size: 18px;
+  font-size: 29px;
   font-weight: 600; /* Bold for titles */
 }
 
 .newsArticle p {
   margin: 0;
-  font-size: 14px;
+  font-size: 20px;
   font-weight: 400;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -156,7 +157,7 @@
 
 .newsArticle small {
   margin: 0;
-  font-size: 12px;
+  font-size: 18px;
   font-weight: 300; /* Lighter for dates */
   color: #666;
 }
