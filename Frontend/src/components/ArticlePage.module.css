@@ -31,14 +31,14 @@
 
 .header .logo {
   font-weight: 700;
-  color: #666;
+  color: #000000;
   padding-left: 20px;
   cursor: pointer;
 }
 
 .header .timestamp {
   font-size: 13px;
-  color: #666;
+  color: #000000;
   padding-right: 20px;
 }
 
@@ -50,20 +50,20 @@
 .main-article h1 {
   margin-bottom: 6%;
   font-size: 45px;
-  color: #333;
+  color: #000000;
   font-weight: 700;
 }
 
 .main-article p {
   margin-bottom: 4%;
   font-size: 29px;
-  color: #4a4a4a;
+  color: #000000;
 }
 
 .meta {
   margin-bottom: 20px;
   font-size: 22px;
-  color: #777;
+  color: #000000;
 }
 
 .meta .date {
@@ -73,7 +73,7 @@
 .details {
   margin-bottom: 20px;
   font-size: 20px;
-  color: #666;
+  color: #000000;
 }
 
 .details .categories {
@@ -92,7 +92,7 @@
 .gaugeBar {
   width: 200px;
   height: 8px;
-  background-color: #e0e0e0;
+  background-color: #000000;
   border-radius: 4px;
   overflow: hidden;
   margin-top: 5px;
@@ -100,7 +100,7 @@
 
 .gaugeBarFill {
   height: 100%;
-  background-color: #1abc9c; /* Use the same green as the star for impact score */
+  background-color: #00ff80; /* Use the same green as the star for impact score */
   transition: none; /* No animations to match existing design */
 }
 
@@ -177,7 +177,7 @@
   flex-direction: column;
   justify-content: space-between;
   font-size: 14px;
-  color: #666;
+  color: #000000;
 }
 
 .recommended-item:nth-child(1),
@@ -192,19 +192,19 @@
 .recommended-item h4 {
   margin: 0;
   font-size: 20px;
-  color: #333;
+  color: #000000;
   font-weight: 600;
 }
 
 .recommended-item p {
   margin: 0;
   font-size: 18px;
-  color: #777;
+  color: #000000;
 }
 
 .recommended-item .impact-score {
   font-size: 13px;
-  color: #666;
+  color: #000000;
 }
 
 /* Tablet (max-width: 768px) */

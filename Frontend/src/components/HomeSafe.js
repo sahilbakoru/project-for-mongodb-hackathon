@@ -3,7 +3,22 @@ import '../styles.css';
 import styles from './BusinessNews.module.css';
 import Chart from 'react-apexcharts';
 import { useNavigate } from 'react-router-dom';
-import { decode } from 'he';
+import {decode} from 'he'
+
+
+let Scores = [
+  {
+    _id: null,
+    avgOptimistic: 105,
+    avgCritical: 100,
+    avgNeutral: 225,
+    avgOther: 35,
+    avgAnticipation: 30,
+    avgSurprise: 5,
+    avgImpactScore: 300,
+  },
+ 
+];
 
 const stockData = [
   { symbol: 'AAPL', price: 175.3, change: 2.5 },
@@ -25,18 +40,18 @@ function Home() {
     series: [
       {
         data: [
-          { x: 'Optimistic', y: 0 },
-          { x: 'Critical', y: 0 },
-          { x: 'Neutral', y: 0 },
-          { x: 'Other', y: 0 },
-          { x: 'Anticipation', y: 0 },
-          { x: 'Surprise', y: 0 },
+          { x: 'Optimistic', y: Scores[0].avgOptimistic },
+          { x: 'Critical', y: Scores[0].avgCritical },
+          { x: 'Neutral', y: Scores[0].avgNeutral },
+          { x: 'Other', y: Scores[0].avgOther },
+          { x: 'Anticipation', y: Scores[0].avgAnticipation },
+          { x: 'Surprise', y: Scores[0].avgSurprise },
         ],
       },
     ],
     options: {
       legend: { show: false },
-      colors: ['rgb(193, 52, 85)', 'rgb(193, 58, 137)', 'rgb(24, 74, 113)', 'rgb(64, 10, 65)', 'rgb(173, 74, 41)', 'rgb(133, 102, 178)'],
+      colors: [ 'rgb(193, 52, 85)', 'rgb(193, 58, 137)', 'rgb(24, 74, 113)','rgb(64, 10, 65)', 'rgb(173, 74, 41)', 'rgb(133, 102, 178)'],
       plotOptions: { treemap: { distributed: true, enableShades: false } },
       chart: { height: '100%', type: 'treemap' },
       title: {
@@ -60,22 +75,6 @@ function Home() {
       },
     ],
   });
-
-  // Fetch emotion data from API
-  async function fetchEmotionData() {
-    try {
-      const res = await fetch(`${BASE_URL}/api/emotion-today`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
-      console.log('Emotion API response:', data); // Log the API response
-      return data;
-    } catch (error) {
-      console.error('Error fetching emotion data:', error);
-      return null;
-    }
-  }
 
   // Fetch all articles
   async function getAllArticles() {
@@ -178,30 +177,9 @@ function Home() {
     setSelectedStock(stock.symbol === selectedStock ? null : stock.symbol);
   };
 
-  // Load data on mount
+  // Load articles on mount or when query changes
   useEffect(() => {
-    const loadData = async () => {
-      const emotionData = await fetchEmotionData();
-      if (emotionData) {
-        setState((prevState) => ({
-          ...prevState,
-          series: [
-            {
-              data: [
-                { x: 'Optimistic', y: emotionData.avgOptimistic },
-                { x: 'Critical', y: emotionData.avgCritical },
-                { x: 'Neutral', y: emotionData.avgNeutral },
-                { x: 'Other', y: emotionData.avgOther },
-                { x: 'Anticipation', y: emotionData.avgAnticipation },
-                { x: 'Surprise', y: emotionData.avgSurprise },
-              ],
-            },
-          ],
-        }));
-      }
-      loadArticles();
-    };
-    loadData();
+    loadArticles();
   }, []);
 
   return (
@@ -266,7 +244,7 @@ function Home() {
                   Impact Score:{' '}
                   <span
                     className={styles.icon}
-                    style={{ color: article?.emotionScores?.impactScore > 50 ? 'rgb(4, 177, 24)' : '#757575' }}
+                    style={{ color: article?.emotionScores?.impactScore > 50 ? ' rgb(4, 177, 24)' : '#757575' }}
                   >
                     ★
                   </span>{' '}

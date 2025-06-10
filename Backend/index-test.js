@@ -26,6 +26,27 @@ function cleanJsonString(str) {
   return str.replace(/```json|```/g, "").trim();
 }
 
+async function getAnswerFormArticle(text,query) {
+  const prompt = `Analyze the following Data : ${text}  and based on that, answer the query:  ${query} , in less than 100 words and in simple language`;
+
+  try {
+    const res = await ai.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: prompt,
+    });
+    // const cleaned = cleanJsonString(res.text);
+    console.log(res.text)
+    return JSON.stringify(res.text);
+  } catch (err) {
+    console.log("❌ failed:", err);
+    return null;
+  }
+}
+
+// getAnswerFormArticle("Will Musk vs. Trump affect xAI’s $5 billion debt deal?While the online feud between Elon Musk and President Donald Trump seemed to drive traffic to Musk’s social media platform X (formerly Twitter), it could also create issues for the platform’s parent company xAI. Musk merged X and xAI earlier this year, with Bloomberg reporting this week that he was looking to raise $5 billion ","whats going on with elon ? ")
+
+
+
 async function getEmotionScores(text) {
   const prompt = `Analyze the following article and return:
 {
@@ -161,6 +182,6 @@ app.post("/api/fetch-and-store", async (req, res) => {
   }
 });
 
-mongoClient.connect().then(() => {
-  app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
-});
+// mongoClient.connect().then(() => {
+//   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+// });
