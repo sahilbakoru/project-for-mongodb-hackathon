@@ -1,187 +1,93 @@
-import express from "express";
-import fetch from "node-fetch";
-import { XMLParser } from "fast-xml-parser";
-import { GoogleGenAI } from "@google/genai";
-import { MongoClient } from "mongodb";
-import dotenv from "dotenv";
-import { startOfDay, endOfDay } from "date-fns";
-import "chalkless";
-import cors from "cors";
+// Import node-fetch for CommonJS
+const fetch = require('node-fetch').default; // Use .default for node-fetch v3+
+const xml2js = require('xml2js');
+const { JSDOM } = require('jsdom');
 
- 
-dotenv.config();
-const app = express();
-app.use(cors());
-const PORT = process.env.PORT || 3000;
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const mongoClient = new MongoClient(process.env.MONGODB_URI);
-const db = mongoClient.db("NewsViz");
-const articlesCollection = db.collection("articles");
-const rssUrl = "https://techcrunch.com/feed/";
-
-app.use(express.json());
-
-function cleanJsonString(str) {
-  return str.replace(/```json|```/g, "").trim();
+// Function to clean the title (remove source suffix like " - Mint")
+function cleanTitle(title) {
+  return title.replace(/ - .*$/, '').trim();
 }
 
-async function getAnswerFormArticle(text,query) {
-  const prompt = `Analyze the following Data : ${text}  and based on that, answer the query:  ${query} , in less than 100 words and in simple language`;
-
+// Function to parse the RSS feed and use related articles for description
+async function parseGoogleNewsRSS(rssUrl) {
   try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
-      contents: prompt,
-    });
-    // const cleaned = cleanJsonString(res.text);
-    console.log(res.text)
-    return JSON.stringify(res.text);
-  } catch (err) {
-    console.log("❌ failed:", err);
-    return null;
-  }
-}
+    // Fetch the RSS feed
+    const response = await fetch(rssUrl);
+    const rssText = await response.text();
 
-// getAnswerFormArticle("Will Musk vs. Trump affect xAI’s $5 billion debt deal?While the online feud between Elon Musk and President Donald Trump seemed to drive traffic to Musk’s social media platform X (formerly Twitter), it could also create issues for the platform’s parent company xAI. Musk merged X and xAI earlier this year, with Bloomberg reporting this week that he was looking to raise $5 billion ","whats going on with elon ? ")
+    // Parse the XML
+    const parser = new xml2js.Parser({ explicitArray: false });
+    const xmlDoc = await parser.parseStringPromise(rssText);
 
+    // Get all <item> elements
+    const items = Array.isArray(xmlDoc.rss.channel.item)
+      ? xmlDoc.rss.channel.item
+      : [xmlDoc.rss.channel.item].filter(Boolean);
+    const results = [];
 
+    for (const item of items) {
+      // Extract basic fields
+      const title = cleanTitle(item.title || '');
+      const link = item.link || '';
+      const pubDate = item.pubDate || '';
+      const source = item.source?._ || '';
+      const sourceUrl = item.source?.$?.url || '';
 
-async function getEmotionScores(text) {
-  const prompt = `Analyze the following article and return:
-{
-  "impactScore": <number>,
-  "toneBreakdown": {
-    "Optimistic": <number>,
-    "Critical": <number>,
-    "Anticipation": <number>,
-    "Surprise": <number>,
-    "Neutral": <number>,
-    "Other": <number>
-  }
-}
-Text:
-${text}`;
+      // Parse publication date
+      let formattedDate = 'Unknown';
+      try {
+        const date = new Date(pubDate);
+        formattedDate = date.toISOString().replace('T', ' ').substring(0, 19);
+      } catch (e) {
+        console.warn('Invalid date format:', pubDate);
+      }
 
-  try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: prompt,
-    });
-    const cleaned = cleanJsonString(res.text);
-    return JSON.parse(cleaned);
-  } catch (err) {
-    console.error("❌ Emotion scoring failed:", err);
-    return null;
-  }
-}
+      // Parse description (HTML content)
+      const description = item.description || '';
+      const { window } = new JSDOM(description);
+      const listItems = window.document.querySelectorAll('li');
 
-async function embedQuery(text) {
-  const result = await ai.models.embedContent({
-    model: "gemini-embedding-exp-03-07",
-    contents: text,
-  });
-  return result.embeddings[0].values;
-}
+      // Combine text from all <a> tags in the description, excluding the first
+      let descriptionText = '';
+      listItems.forEach((li, index) => {
+        const articleTitle = li.querySelector('a')?.textContent || '';
+        if (articleTitle && index > 0) { // Skip the first item (index 0)
+          descriptionText += (descriptionText ? ' | ' : '') + articleTitle;
+        }
+      });
 
-async function embedItem(item) {
-  const text = `${item.title}. ${item.description}`;
-  const embedding = await embedQuery(text);
-  const emotionScores = await getEmotionScores(text);
+      // Extract main article source (for consistency)
+      const mainArticle = listItems[0];
+      const descriptionSource = mainArticle?.querySelector('font')?.textContent || source;
 
-  return {
-    title: item.title,
-    description: item.description,
-    link: item.link,
-    pubDate: item.pubDate,
-    categories: item.category,
-    emotionScores,
-    embedding,
-  };
-}
+      // Store the result
+      results.push({
+        title,
+        link,
+        pubDate: formattedDate,
+        source,
+        sourceUrl,
+        description: descriptionText, // Use combined related articles as description
+        descriptionSource
+      });
 
-async function getFeedItems() {
-  const res = await fetch(rssUrl);
-  const xml = await res.text();
-  const parser = new XMLParser();
-  const json = parser.parse(xml);
-  return json.rss.channel.item.slice(0, 5);
-}
-
-// Routes
-app.get("/api/articles", async (req, res) => {
-  console.log("all articles fetched api hit ")
-  const articles = await articlesCollection.find({}).sort({ pubDate: -1 }).limit(20).toArray();
-  res.json(articles);
-  // console.log(articles)
-});
-
-app.get("/api/emotion-today", async (req, res) => {
-  console.magenta("api/emotion-today api hit")
-  const todayStart = startOfDay(new Date());
-  const todayEnd = endOfDay(new Date());
-
-  const result = await articlesCollection.aggregate([
-    {
-      $group: {
-        _id: null,
-        avgOptimistic: { $sum: "$emotionScores.toneBreakdown.Optimistic" },
-        avgCritical: { $sum: "$emotionScores.toneBreakdown.Critical" },
-        avgNeutral: { $sum: "$emotionScores.toneBreakdown.Neutral" },
-        avgOther: { $sum: "$emotionScores.toneBreakdown.Other" },
-        avgAnticipation: { $sum: "$emotionScores.toneBreakdown.Anticipation" },
-        avgSurprise: { $sum: "$emotionScores.toneBreakdown.Surprise" },
-        avgImpactScore: { $sum: "$emotionScores.impactScore" },
-      },
-    },
-  ]).toArray();
-
-  res.json(result[0] || {});
-});
-
-app.get("/api/search", async (req, res) => {
-  console.blue('search api got hit')
-  const query = req.query.q;
-  if (!query) return res.status(400).json({ error: "Missing query string ?q=" });
-
-  const queryEmbedding = await embedQuery(query);
-  const results = await articlesCollection.aggregate([
-    {
-      $vectorSearch: {
-        index: "vector_index",
-        path: "embedding",
-        queryVector: queryEmbedding,
-        numCandidates: 50,
-        limit: 5,
-        similarity: "cosine",
-      },
-    },
-  ]).toArray();
-
-  res.json(results);
-});
-
-app.post("/api/fetch-and-store", async (req, res) => {
-  try {
-    const articles = await getFeedItems();
-    let inserted = 0;
-
-    for (const article of articles) {
-      const exists = await articlesCollection.findOne({ link: article.link });
-      if (exists) continue;
-
-      const embedded = await embedItem(article);
-      await articlesCollection.insertOne(embedded);
-      inserted++;
+      // Clean up JSDOM
+      window.close();
     }
 
-    res.json({ message: `✅ Inserted ${inserted} new articles.` });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Something went wrong" });
+    return results;
+  } catch (error) {
+    console.error('Error parsing RSS feed:', error);
+    return [];
   }
-});
+}
 
-// mongoClient.connect().then(() => {
-//   app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
-// });
+// Example usage
+const rssUrl = 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen'
+parseGoogleNewsRSS(rssUrl)
+  .then(results => {
+    console.log(JSON.stringify(results, null, 2));
+  })
+  .catch(error => {
+    console.error('Main execution error:', error);
+  });
