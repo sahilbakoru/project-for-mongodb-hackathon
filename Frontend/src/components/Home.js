@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import '../styles.css';
 import styles from './BusinessNews.module.css';
 import Chart from 'react-apexcharts';
@@ -15,8 +15,10 @@ const stockData = [
 
 function Home() {
   const navigate = useNavigate();
+  const hasLoaded = useRef(false);
   const [selectedStock, setSelectedStock] = useState(null);
   const [articles, setArticles] = useState([]);
+  const [aiAnswer, setAiAnswer] = useState(null); // New state for AI answer
   const [isLoading, setIsLoading] = useState(true);
   const [query, setQuery] = useState('');
   const BASE_URL = 'http://localhost:3000';
@@ -69,7 +71,7 @@ function Home() {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const data = await res.json();
-      console.log('Emotion API response:', data); // Log the API response
+      console.log('Emotion API response:', data);
       return data;
     } catch (error) {
       console.error('Error fetching emotion data:', error);
@@ -100,26 +102,26 @@ function Home() {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const data = await res.json();
-      console.log('Search API response:', data); // Log the API response
-      return data;
+      console.log('Search API response:', data);
+      return data; // Expecting { articles, aiAnswer }
     } catch (error) {
       console.error('Error searching articles:', error);
-      return [];
+      return { articles: [], aiAnswer: null };
     }
   }
 
   // Load articles (default or search results)
   const loadArticles = async () => {
-    console.log("load articles hit")
+    console.log('loadArticles called, query:', query);
     setIsLoading(true);
     let result;
     if (query) {
       result = await searchArticles(query);
     } else {
-      result = await getAllArticles();
+      result = { articles: await getAllArticles(), aiAnswer: null };
     }
-    const validArticles = Array.isArray(result)
-      ? result
+    const validArticles = Array.isArray(result.articles)
+      ? result.articles
           .filter(
             (article) =>
               article &&
@@ -145,6 +147,7 @@ function Home() {
           }))
       : [];
     setArticles(validArticles);
+    setAiAnswer(result.aiAnswer); // Set the AI answer
     setIsLoading(false);
   };
 
@@ -181,6 +184,9 @@ function Home() {
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
+      if (hasLoaded.current) return;
+      hasLoaded.current = true;
+
       const emotionData = await fetchEmotionData();
       if (emotionData) {
         setState((prevState) => ({
@@ -208,11 +214,12 @@ function Home() {
     <div className={styles.body}>
       <div className={styles.container}>
         <div style={{ borderBottom: '2px solid black' }}>
+          
           <form className={styles.searchBar} onSubmit={handleSearchSubmit}>
             <input
               className={styles.searchInput}
               type="text"
-              placeholder="Search"
+              placeholder="Search or ask a question ? "
               value={query}
               onChange={handleSearchChange}
             />
@@ -249,6 +256,12 @@ function Home() {
               </div>
             ))}
           </div>
+          {aiAnswer && (
+            <div className={styles.aiResponse}>
+              <h3>˙✦AI Answer</h3>
+              <p>{aiAnswer}</p>
+            </div>
+          )}
           {isLoading ? (
             <div>Loading articles...</div>
           ) : articles.length === 0 ? (

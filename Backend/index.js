@@ -54,6 +54,22 @@ ${text}`;
     return null;
   }
 }
+async function getAnswerFromArticle(text,query) {
+  const prompt = `Analyze the following Data : ${text}  and based on that, answer the query:  ${query} , in less than 100 words and in simple language`;
+
+  try {
+    const res = await ai.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: prompt,
+    });
+    // const cleaned = cleanJsonString(res.text);
+    console.log(res.text)
+    return JSON.stringify(res.text);
+  } catch (err) {
+    console.log("❌ failed:", err);
+    return null;
+  }
+}
 
 async function embedQuery(text) {
   const result = await ai.models.embedContent({
@@ -119,25 +135,43 @@ app.get("/api/emotion-today", async (req, res) => {
 });
 
 app.get("/api/search", async (req, res) => {
-  console.blue('search api got hit')
+  console.blue('search api got hit');
   const query = req.query.q;
   if (!query) return res.status(400).json({ error: "Missing query string ?q=" });
 
+  // Perform the vector search to get articles
   const queryEmbedding = await embedQuery(query);
-  const results = await articlesCollection.aggregate([
-    {
-      $vectorSearch: {
-        index: "vector_index",
-        path: "embedding",
-        queryVector: queryEmbedding,
-        numCandidates: 50,
-        limit: 5,
-        similarity: "cosine",
+  const results = await articlesCollection
+    .aggregate([
+      {
+        $vectorSearch: {
+          index: "vector_index",
+          path: "embedding",
+          queryVector: queryEmbedding,
+          numCandidates: 50,
+          limit: 5,
+          similarity: "cosine",
+        },
       },
-    },
-  ]).toArray();
+    ])
+    .toArray();
 
-  res.json(results);
+  // Check if the query is a question (ends with '?')
+  let aiAnswer = null;
+  if (query.trim().endsWith('?')) {
+    // Get the top article (first result)
+    const topArticle = results[0];
+    if (topArticle) {
+      const text = `${topArticle.title}. ${topArticle.description}`;
+      aiAnswer = await getAnswerFromArticle(text, query);
+    }
+  }
+
+  // Return both articles and AI answer (if applicable)
+  res.json({
+    articles: results,
+    aiAnswer: aiAnswer ? JSON.parse(aiAnswer) : null, // Parse the AI answer if it exists
+  });
 });
 
 app.post("/api/fetch-and-store", async (req, res) => {

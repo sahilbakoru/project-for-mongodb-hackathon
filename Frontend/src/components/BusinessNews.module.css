@@ -20,9 +20,9 @@
 .searchBar {
   display: flex;
   align-items: center;
-  border: 2px solid #333;
+  border: 2px solid #000000;
   border-bottom: none;
-  padding: 5px;
+  padding: 0px;
   margin-bottom: 0;
   font-size: 24px;
 }
@@ -33,13 +33,16 @@
   outline: none;
   font-size: 24px;
   padding: 8px 8px;
+  font-weight: 600;
 }
 
 .searchIcon {
   padding: 8px 30px;
-  font-size: 20px;
+  font-size: 24px;
   cursor: pointer;
-  border-left: 2px solid #333;
+  border: 1px solid #7b7b7b;
+  border-left: 2px solid #000000;
+  background-color: #ffffff;
   height: 100%;
   display: flex;
   align-items: center;
@@ -100,6 +103,47 @@
 
 .stockTab .down {
   color: red;
+}
+.aiResponse {
+  margin: 1rem 0; /* Consistent spacing with news articles */
+  padding: 1rem; /* Internal padding */
+  border: 2px solid #00aaff; /* Tech-inspired blue border */
+  border-radius: 4px; /* Slight rounding */
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%); /* AI-like gradient */
+  text-align: left; /* Align text to the left */
+  box-shadow: 0 4px 8px rgba(0, 170, 255, 0.3); /* Glowing shadow for AI feel */
+  position: relative; /* For pseudo-element */
+}
+
+/* Glowing border effect for AI aesthetic */
+.aiResponse::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid #00aaff;
+  border-radius: 6px;
+  animation: glow 2s infinite alternate;
+  z-index: -1;
+  opacity: 0.7;
+}
+
+.aiResponse h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  color: #004d99; /* Darker blue for tech theme */
+  font-weight: bold;
+}
+
+.aiResponse p {
+  margin: 0;
+  font-size: 1rem;
+  color: #003366; /* Deep blue for text */
+  line-height: 1.5;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
 .newsArticle {
@@ -265,7 +309,18 @@
     font-size: 12px;
     padding: 8px 4px;
   }
+ .aiResponse {
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+  }
 
+  .aiResponse h3 {
+    font-size: 1.1rem;
+  }
+
+  .aiResponse p {
+    font-size: 0.9rem;
+  }
   .newsArticle h3 {
     font-size: 14px;
   }
@@ -312,7 +367,18 @@
     font-size: 10px;
     padding: 6px 3px;
   }
+.aiResponse {
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+  }
 
+  .aiResponse h3 {
+    font-size: 1rem;
+  }
+
+  .aiResponse p {
+    font-size: 0.85rem;
+  }
   .newsArticle h3 {
     font-size: 12px;
   }
