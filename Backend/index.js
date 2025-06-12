@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import { startOfDay, endOfDay } from "date-fns";
 import "chalkless";
 import cors from "cors";
-
+import { parseGoogleNewsRSS } from './utils/parseGoogleNewsRSS.js';
  
 dotenv.config();
 const app = express();
@@ -18,16 +18,20 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const mongoClient = new MongoClient(process.env.MONGODB_URI);
 const db = mongoClient.db("NewsViz");
 const articlesCollection = db.collection("articles");
-const rssUrl = "https://techcrunch.com/feed/";
+// const rssUrl = "https://techcrunch.com/feed/";
+const rssUrl = "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen";
+
 
 app.use(express.json());
-
 function cleanJsonString(str) {
-  return str.replace(/```json|```/g, "").trim();
+  const match = str.match(/```json([\s\S]*?)```/i) || str.match(/```([\s\S]*?)```/i);
+  if (match) return match[1].trim();
+  return str.trim(); // fallback if no code block
 }
 
 async function getEmotionScores(text) {
-  const prompt = `Analyze the following article and return:
+  const prompt = `Analyze the following article and return a valid JSON object like this (ONLY the JSON, no commentary) the number can be between 1 to 100 only:
+\`\`\`json
 {
   "impactScore": <number>,
   "toneBreakdown": {
@@ -39,7 +43,8 @@ async function getEmotionScores(text) {
     "Other": <number>
   }
 }
-Text:
+\`\`\`
+Now analyze this text:
 ${text}`;
 
   try {
@@ -47,6 +52,7 @@ ${text}`;
       model: "gemini-2.0-flash",
       contents: prompt,
     });
+
     const cleaned = cleanJsonString(res.text);
     return JSON.parse(cleaned);
   } catch (err) {
@@ -54,6 +60,7 @@ ${text}`;
     return null;
   }
 }
+
 async function getAnswerFromArticle(text,query) {
   const prompt = `Analyze the following Data : ${text}  and based on that, answer the query:  ${query} , in less than 100 words and in simple language`;
 
@@ -79,6 +86,12 @@ async function embedQuery(text) {
   return result.embeddings[0].values;
 }
 
+
+async function getFeedItems() {
+  const parsed = await parseGoogleNewsRSS(rssUrl);
+  return parsed.slice(0, 6); // Limit to 3 for now
+}
+
 async function embedItem(item) {
   const text = `${item.title}. ${item.description}`;
   const embedding = await embedQuery(text);
@@ -89,19 +102,20 @@ async function embedItem(item) {
     description: item.description,
     link: item.link,
     pubDate: item.pubDate,
-    categories: item.category,
+    sourceUrl:item.sourceUrl,
+    // categories: item.category,
     emotionScores,
     embedding,
   };
 }
 
-async function getFeedItems() {
-  const res = await fetch(rssUrl);
-  const xml = await res.text();
-  const parser = new XMLParser();
-  const json = parser.parse(xml);
-  return json.rss.channel.item.slice(0, 5);
-}
+// async function getFeedItems() {
+//   const res = await fetch(rssUrl);
+//   const xml = await res.text();
+//   const parser = new XMLParser();
+//   const json = parser.parse(xml);
+//   return json.rss.channel.item.slice(0, 5);
+// }
 
 // Routes
 app.get("/api/articles", async (req, res) => {
@@ -175,6 +189,7 @@ app.get("/api/search", async (req, res) => {
 });
 
 app.post("/api/fetch-and-store", async (req, res) => {
+  console.log('fetch and store hit at /api/fetch-and-store')
   try {
     const articles = await getFeedItems();
     let inserted = 0;

@@ -229,6 +229,16 @@
   border-radius: 5px;
   background-color: #e0e0e0;
 }
+.sourceBadge {
+  display: inline-block;
+  background-color: #f0f0f0;
+  color: #333;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin: 4px 0;
+}
+
 
 .toneBarFill {
   height: 100%;

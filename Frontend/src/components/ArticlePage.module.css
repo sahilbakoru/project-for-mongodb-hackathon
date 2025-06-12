@@ -140,6 +140,12 @@
 .readMoreButton:hover {
   background-color: #16a085;
 }
+.source {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 4px;
+  display: block;
+}
 
 .recommended {
   padding: 0;

@@ -10,124 +10,84 @@ const ArticlePage = () => {
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(true);
   const BASE_URL = 'http://localhost:3000';
 
-  // Decode URL parameters with fallback values
-  const title = decode(searchParams.get('title') || 'Meet the Finalists: VivaTech’s 5 Most Visionary Startups of 2025');
-  const description = decode(searchParams.get('description') || 
-    'Narrowing down the 30 most visionary startups of the year to just five finalists was no easy feat. VivaTech\'s Innovation of the Year attracted an extraordinary pool of applicants—startups tackling massive global challenges with bold, technically sophisticated, and scalable solutions...');
+  // Decode URL parameters
+  const title = decode(searchParams.get('title') || '');
+  const description = decode(searchParams.get('description') || '');
   const link = decode(searchParams.get('link') || '');
-  const pubDate = decodeURIComponent(searchParams.get('pubDate') || '7/6/2025, 8:00:00 am');
-  const categories = (searchParams.get('categories') || 'AI,Social,Startups,TC,Elon Musk,X,xAI').split(',');
+  const pubDate = decodeURIComponent(searchParams.get('pubDate') || '');
+  const sourceUrl = decodeURIComponent(searchParams.get('sourceUrl') || '');
   const impactScore = parseInt(searchParams.get('impactScore'), 10) || 65;
-  const toneBreakdown = JSON.parse(decodeURIComponent(searchParams.get('toneBreakdown') || 
-    '{"Optimistic":40,"Critical":0,"Anticipation":30,"Surprise":5,"Neutral":10,"Other":15}'));
+  const toneBreakdown = JSON.parse(decodeURIComponent(searchParams.get('toneBreakdown') || '{}'));
 
-  // Mock recommended articles as fallback
-  const mockRecommendedArticles = [
-    {
-      title: 'Will Musk vs. Trump Affect xAI’s $5 Billion Debt Deal?',
-      description: 'While the online feud between Elon Musk and industry leaders continues to unfold...',
-      link: 'https://example.com/article1',
-      impactScore: 60,
-      emotionScores: { toneBreakdown: { Optimistic: 5, Critical: 40, Neutral: 50, Other: 5 } },
-      pubDate: 'Sat, 07 Jun 2025 16:37:35 +0000',
-      categories: ['AI', 'Social', 'Startups', 'TC', 'Elon Musk', 'X', 'xAI'],
-    },
-    {
-      title: 'Elon Musk’s Next Venture',
-      description: 'Speculation grows about Musk’s plans following recent market shifts.',
-      link: 'https://example.com/article2',
-      impactScore: 65,
-      emotionScores: { toneBreakdown: { Optimistic: 10, Critical: 20, Neutral: 65, Other: 5 } },
-      pubDate: 'Sun, 08 Jun 2025 12:15:00 +0000',
-      categories: ['Technology', 'AI', 'Innovation'],
-    },
-    {
-      title: 'Startup Funding Trends',
-      description: '2025 sees a surge in startup investments despite economic challenges.',
-      link: 'https://example.com/article3',
-      impactScore: 55,
-      emotionScores: { toneBreakdown: { Optimistic: 15, Critical: 25, Neutral: 55, Other: 5 } },
-      pubDate: 'Mon, 09 Jun 2025 09:00:00 +0000',
-      categories: ['Finance', 'Startups', 'Trends'],
-    },
-    {
-      title: 'TechCrunch Insights',
-      description: 'Key takeaways from the latest TechCrunch business report.',
-      link: 'https://example.com/article4',
-      impactScore: 70,
-      emotionScores: { toneBreakdown: { Optimistic: 20, Critical: 15, Neutral: 60, Other: 5 } },
-      pubDate: 'Tue, 10 Jun 2025 14:30:00 +0000',
-      categories: ['Technology', 'Business', 'News'],
-    },
-  ];
+  // Fetch recommendations
+async function fetchRecommendedArticles() {
+  try {
+    const query = encodeURIComponent(`${title} ${description}`);
+    const res = await fetch(`${BASE_URL}/api/search?q=${query}`);
+    const data = await res.json();
+    console.log(data, 'data from API recommended');
 
-  // Fetch recommended articles from search API
-  async function fetchRecommendedArticles() {
-    try {
-      const query = encodeURIComponent(`${title} ${description}`);
-      const res = await fetch(`${BASE_URL}/api/search?q=${query}`);
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-      const data = await res.json();
-      console.log('Search API response for recommendations:', data); // Log the API response for debugging
+    const currentTitleNormalized = title.trim().toLowerCase();
 
-      // Filter out the current article with strict comparison
-      const currentTitleNormalized = title.trim().toLowerCase();
-      const filteredArticles = Array.isArray(data)
-        ? data
-            .filter((article) => {
-              const articleTitleNormalized = article.title?.trim().toLowerCase() || '';
-              return articleTitleNormalized !== currentTitleNormalized;
-            })
-            .slice(0, 4) // Take up to 4 articles
-            .map((article) => ({
-              title: article.title || '',
-              description: article.description || '',
-              link: article.link || '',
-              impactScore: article.emotionScores?.impactScore || 0,
-              emotionScores: {
-                toneBreakdown: article.emotionScores?.toneBreakdown || { Optimistic: 0, Critical: 0, Neutral: 0, Other: 0 },
-              },
-              pubDate: article.pubDate || '',
-              categories: Array.isArray(article.categories) ? article.categories : article.categories ? [article.categories] : [], // Convert string to array if needed
-            }))
-        : [];
+    const articles = Array.isArray(data.articles) ? data.articles : [];
 
-      console.log('Filtered articles with categories:', filteredArticles); // Debug filtered articles and categories
-      setRecommendedArticles(filteredArticles.length >= 4 ? filteredArticles : mockRecommendedArticles);
-    } catch (error) {
-      console.error('Error fetching recommended articles:', error);
-      setRecommendedArticles(mockRecommendedArticles); // Fallback to mock data
-    } finally {
-      setIsLoadingRecommendations(false);
+    const filtered = articles
+      .filter((a) => {
+        const articleTitle = (a.title || '').trim().toLowerCase();
+        return articleTitle !== currentTitleNormalized;
+      })
+      .slice(0, 4)
+     .map((a) => {
+  let safeLink = '';
+  try {
+    if (typeof a.link === 'string') {
+      const url = new URL(a.link); // Will throw if invalid
+      safeLink = url.toString();
     }
+  } catch (e) {
+    console.warn('Invalid URL in article:', a.link);
   }
 
-  // Scroll to top and fetch recommendations on mount
+  return {
+    title: a.title || '',
+    description: a.description || '',
+    link: safeLink, // Now always a valid or empty URL
+    pubDate: a.pubDate || '',
+    impactScore: a.emotionScores?.impactScore || 0,
+    toneBreakdown: a.emotionScores?.toneBreakdown || {},
+    sourceUrl: a.sourceUrl || 'Unknown Source',
+  };
+})
+
+
+    console.log(filtered, 'Filtered recommended articles');
+    setRecommendedArticles(filtered);
+  } catch (err) {
+    console.error('Recommendation fetch error:', err);
+    setRecommendedArticles([]);
+  } finally {
+    setIsLoadingRecommendations(false);
+  }
+}
+
+
   useEffect(() => {
     window.scrollTo(0, 0);
     fetchRecommendedArticles();
-  }, [title, description]); // Re-fetch if title or description changes
+  }, [title, description]);
 
-  // Function to open full article
   const openFullArticle = () => {
-    if (link) {
-      window.open(link, '_blank', 'noopener,noreferrer');
-    }
+    if (link) window.open(link, '_blank', 'noopener,noreferrer');
   };
 
-  // Function to navigate to recommended article
   const handleRecommendationClick = (article) => {
     navigate(
-      `/article?title=${encodeURIComponent(article.title || '')}&description=${encodeURIComponent(
-        article.description || ''
-      )}&link=${encodeURIComponent(article.link || '')}&pubDate=${encodeURIComponent(
-        article.pubDate || ''
-      )}&categories=${encodeURIComponent(
-        (Array.isArray(article.categories) ? article.categories : article.categories ? [article.categories] : []).join(',') || categories.join(',') || ''
-      )}&impactScore=${article.impactScore || 0}&toneBreakdown=${encodeURIComponent(
-        JSON.stringify(article.emotionScores?.toneBreakdown || { Optimistic: 0, Critical: 0, Neutral: 0, Other: 0 })
+      `/article?title=${encodeURIComponent(article.title)}&description=${encodeURIComponent(
+        article.description
+      )}&link=${encodeURIComponent(article.link)}&pubDate=${encodeURIComponent(
+        article.pubDate
+      )}&sourceUrl=${encodeURIComponent(article.sourceUrl)}&impactScore=${article.impactScore}&toneBreakdown=${encodeURIComponent(
+        JSON.stringify(article.toneBreakdown)
       )}`
     );
   };
@@ -137,59 +97,61 @@ const ArticlePage = () => {
       <div className={styles.container}>
         <div className={styles.header}>
           <span className={styles.logo} onClick={() => navigate('/')}>Home</span>
-          <span className={styles.timestamp}>Updated: Jun 09, 2025, 01:21 AM IST</span>
+          <span className={styles.timestamp}>
+            Updated: {new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+          </span>
         </div>
+
         <div className={styles['main-article']}>
           <h1>{title}</h1>
-          <p>{description}</p>
+          <p className={styles.description}>{description}</p>
+
           <div className={styles.meta}>
             <span className={styles.date}>
               Published: {pubDate && new Date(pubDate).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
             </span>
-            <span>By: John Doe</span>
+            {sourceUrl && (
+              <span className={styles.source}>Source: {sourceUrl}</span>
+            )}
           </div>
-          <div className={styles.details}>
-            <div className={styles.categories}>
-              Categories: {categories.join(', ')}
+
+          <div className={styles['impact-score']}>
+            <span>Impact Score: {impactScore}%</span>
+            <div className={styles.gaugeBar}>
+              <div className={styles.gaugeBarFill} style={{ width: `${impactScore}%` }} />
             </div>
-            <div className={styles['impact-score']}>
-              <span>Impact Score: {impactScore}%</span>
-              <div className={styles.gaugeBar}>
-                <div
-                  className={styles.gaugeBarFill}
-                  style={{ width: `${impactScore}%` }}
-                />
-              </div>
-            </div>
-            <div className={styles['tone-breakdown']}>
-              <span className={styles['tone-breakdown-label']}>Tone Breakdown:</span>
-              {Object.entries(toneBreakdown).map(([tone, score]) => (
-                <div key={tone} className={styles.toneItem}>
-                  <span>{tone}: {score}%</span>
-                  <div className={styles.gaugeBar}>
-                    <div
-                      className={styles.gaugeBarFill}
-                      style={{
-                        width: `${score}%`,
-                        backgroundColor:
-                          tone === 'Optimistic' ? '#c8e6c9' :
-                          tone === 'Critical' ? '#ef9a9a' :
-                          tone === 'Anticipation' ? '#81d4fa' :
-                          tone === 'Surprise' ? '#ffca28' :
-                          tone === 'Neutral' ? 'rgba(107, 240, 255, 0.57)' : '#bbdefb',
-                      }}
-                    />
-                  </div>
+          </div>
+
+          <div className={styles['tone-breakdown']}>
+            <span className={styles['tone-breakdown-label']}>Tone Breakdown:</span>
+            {Object.entries(toneBreakdown).map(([tone, score]) => (
+              <div key={tone} className={styles.toneItem}>
+                <span>{tone}: {score}%</span>
+                <div className={styles.gaugeBar}>
+                  <div
+                    className={styles.gaugeBarFill}
+                    style={{
+                      width: `${score}%`,
+                      backgroundColor:
+                        tone === 'Optimistic' ? '#c8e6c9' :
+                        tone === 'Critical' ? '#ef9a9a' :
+                        tone === 'Anticipation' ? '#81d4fa' :
+                        tone === 'Surprise' ? '#ffca28' :
+                        tone === 'Neutral' ? 'rgba(107, 240, 255, 0.57)' : '#bbdefb',
+                    }}
+                  />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
+
           {link && (
             <button className={styles.readMoreButton} onClick={openFullArticle}>
               Read Full Article
             </button>
           )}
         </div>
+
         <div className={styles.recommended}>
           <h3>Recommended articles</h3>
           <div className={styles['recommended-grid']}>
@@ -212,10 +174,7 @@ const ArticlePage = () => {
                   <div className={styles['impact-score']}>
                     <span>Impact Score: {article.impactScore}%</span>
                     <div className={styles.gaugeBar}>
-                      <div
-                        className={styles.gaugeBarFill}
-                        style={{ width: `${article.impactScore}%` }}
-                      />
+                      <div className={styles.gaugeBarFill} style={{ width: `${article.impactScore}%` }} />
                     </div>
                   </div>
                 </div>

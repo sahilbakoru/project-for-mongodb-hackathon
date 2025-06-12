@@ -129,7 +129,6 @@ function Home() {
               article.description &&
               article.link &&
               article.pubDate &&
-              Array.isArray(article.categories) &&
               article.emotionScores &&
               typeof article.emotionScores.impactScore === 'number'
           )
@@ -166,15 +165,17 @@ function Home() {
   const handleArticleClick = (article) => {
     if (!article) return;
     navigate(
-      `/article?title=${encodeURIComponent(article.title || '')}&description=${encodeURIComponent(
-        article.description || ''
-      )}&link=${encodeURIComponent(article.link || '')}&pubDate=${encodeURIComponent(
-        article.pubDate || ''
-      )}&categories=${encodeURIComponent(article.categories?.join(',') || '')}&impactScore=${
-        article.emotionScores?.impactScore || 0
-      }&toneBreakdown=${encodeURIComponent(JSON.stringify(article.emotionScores?.toneBreakdown || {}))}`
-    );
+  `/article?title=${encodeURIComponent(article.title || '')}&description=${encodeURIComponent(
+    article.description || ''
+  )}&link=${encodeURIComponent(article.link || '')}&pubDate=${encodeURIComponent(
+    article.pubDate || ''
+  )}&sourceUrl=${encodeURIComponent(article.sourceUrl || '')}&impactScore=${
+    article.emotionScores?.impactScore || 0
+  }&toneBreakdown=${encodeURIComponent(JSON.stringify(article.emotionScores?.toneBreakdown || {}))}`
+);
   };
+
+  
 
   // Handle stock click
   const handleStockClick = (stock) => {
@@ -271,7 +272,9 @@ function Home() {
               <div key={article._id} className={styles.newsArticle} onClick={() => handleArticleClick(article)}>
                 <h3>{decode(article.title)}</h3>
                 <p>{article?.description?.length > 100 ? `${decode(article?.description?.slice(0, 100))}…` : article?.description}</p>
-                <p>Categories: {article?.categories?.join(', ')}</p>
+               <div className={styles.sourceBadge}>
+  {article?.sourceUrl?.replace(/^https?:\/\//, '')}
+</div>
                 <small>
                   Published: {new Date(article?.pubDate).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
                 </small>
