@@ -59,95 +59,138 @@
   font-size: 29px;
   color: #000000;
 }
-
 .meta {
-  margin-bottom: 20px;
-  font-size: 22px;
-  color: #000000;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: #6c757d;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
 }
 
 .meta .date {
-  margin-right: 15px;
+  font-weight: 500;
 }
 
-.details {
+.meta .source {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.impact-score {
   margin-bottom: 20px;
-  font-size: 20px;
-  color: #000000;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
 }
 
-.details .categories {
-  margin-bottom: 10px;
-  font-weight: 500;
-}
-
-.details .impact-score {
-  margin-bottom: 15px;
-}
-
-.details .impact-score span {
-  font-weight: 500;
+.impact-score span {
+  font-weight: 600;
+  color: #343a40;
+  font-size: 16px;
+  margin-bottom: 5px;
+  display: block;
 }
 
 .gaugeBar {
-  width: 200px;
-  height: 8px;
-  background-color: #000000;
-  border-radius: 4px;
+  width: 100%;
+  height: 10px;
+  background-color: #e9ecef;
+  border-radius: 5px;
   overflow: hidden;
-  margin-top: 5px;
 }
 
 .gaugeBarFill {
   height: 100%;
-  background-color: #00ff80; /* Use the same green as the star for impact score */
-  transition: none; /* No animations to match existing design */
+  border-radius: 5px;
+  background-color: #28a745; /* Consistent green from the image */
 }
 
 .tone-breakdown {
-  margin: 0;
-  padding: 0;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
 }
 
 .tone-breakdown-label {
-  font-weight: 500;
-  display: block;
+  font-weight: 600;
+  color: #343a40;
+  font-size: 16px;
   margin-bottom: 10px;
+  display: block;
 }
 
 .toneItem {
-  margin-bottom: 10px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 5px 0;
+  border-bottom: 1px dashed #dee2e6;
+}
+
+.toneItem:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .toneItem span {
   font-weight: 500;
+  color: #495057;
+  font-size: 14px;
+  min-width: 120px;
+  text-align: right;
 }
 
 .readMoreButton {
+  display: inline-block;
   padding: 10px 20px;
-  margin: 20px 0;
-  background-color: #1abc9c;
-  color: #ffffff;
-  border: none;
+  background-color: #fff;
+  color: #007bff;
+  border: 1px solid #007bff;
   border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+.loading {
+  width: 100%;
+  height: 100px;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  font-family: 'Arial', sans-serif;
   font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+  color: #343a40;
+  font-weight: 500;
+  text-align: center;
 }
 
-.readMoreButton:hover {
-  background-color: #16a085;
+.loading span {
+  position: relative;
+  padding: 5px 10px;
+  background: linear-gradient(90deg, #e9ecef, #fff);
+  border-radius: 4px;
 }
-.source {
-  color: #666;
-  font-size: 0.9rem;
-  margin-top: 4px;
-  display: block;
+.readMoreButton:hover {
+  background-color: #ffffff;
+  cursor: pointer;
 }
 
 .recommended {
+  margin-top: 8%;
   padding: 0;
 }
 

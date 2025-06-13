@@ -8,6 +8,7 @@ import { startOfDay, endOfDay } from "date-fns";
 import "chalkless";
 import cors from "cors";
 import { parseGoogleNewsRSS } from './utils/parseGoogleNewsRSS.js';
+import {getRelevantTickersFromHeadlines} from './utils/getRelevantTickersFromHeadlines.js';
  
 dotenv.config();
 const app = express();

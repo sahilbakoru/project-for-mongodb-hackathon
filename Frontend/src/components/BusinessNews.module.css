@@ -104,6 +104,30 @@
 .stockTab .down {
   color: red;
 }
+.loading {
+  width: 100%;
+  height: 100px;
+  justify-content: center;
+  display: flex;
+  align-items: center;
+  /* padding: 20px; */
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
+  font-family: 'Arial', sans-serif;
+  font-size: 16px;
+  color: #343a40;
+  font-weight: 500;
+  text-align: center;
+}
+
+.loading span {
+  position: relative;
+  padding: 5px 10px;
+  background: linear-gradient(90deg, #e9ecef, #fff);
+  border-radius: 4px;
+}
 .aiResponse {
   margin: 1rem 0; /* Consistent spacing with news articles */
   padding: 1rem; /* Internal padding */

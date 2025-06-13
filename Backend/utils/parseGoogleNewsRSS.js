@@ -1,4 +1,4 @@
-// Add this to a new file like `utils/parseGoogleNewsRSS.js`
+
 import fetch from 'node-fetch';
 import { JSDOM } from 'jsdom';
 import xml2js from 'xml2js';

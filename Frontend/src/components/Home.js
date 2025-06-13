@@ -264,7 +264,9 @@ function Home() {
             </div>
           )}
           {isLoading ? (
-            <div>Loading articles...</div>
+            <div className={styles.loading}>
+                             <span>Loading recommendations...</span>
+                           </div>
           ) : articles.length === 0 ? (
             <div>No articles available.</div>
           ) : (
