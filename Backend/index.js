@@ -19,6 +19,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 const mongoClient = new MongoClient(process.env.MONGODB_URI);
 const db = mongoClient.db("NewsViz");
 const articlesCollection = db.collection("articles");
+ const tickersCollection = db.collection('tickers'); 
 // const rssUrl = "https://techcrunch.com/feed/";
 const rssUrl = "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen";
 
@@ -149,8 +150,30 @@ app.get("/api/emotion-today", async (req, res) => {
   res.json(result[0] || {});
 });
 
+app.get("/api/tickers", async (req, res) => {
+  console.log('Fetching all tickers from /api/tickers');
+  try {
+    const tickersCollection = db.collection('tickers');
+    const tickers = await tickersCollection.find({}).toArray();
+    res.json(tickers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch tickers" });
+  }
+});
+app.get("/api/summaries", async (req, res) => {
+  console.log('Fetching all summaries from /api/summaries');
+  try {
+    const summariesCollection = db.collection('summaries');
+    const summaries = await summariesCollection.find({}).toArray();
+    res.json(summaries);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch summaries" });
+  }
+});
+
 app.get("/api/search", async (req, res) => {
-  console.blue('search api got hit');
   const query = req.query.q;
   if (!query) return res.status(400).json({ error: "Missing query string ?q=" });
 
@@ -190,21 +213,66 @@ app.get("/api/search", async (req, res) => {
 });
 
 app.post("/api/fetch-and-store", async (req, res) => {
-  console.log('fetch and store hit at /api/fetch-and-store')
+  console.log('fetch and store hit at /api/fetch-and-store');
   try {
     const articles = await getFeedItems();
-    let inserted = 0;
+    let insertedArticles = 0;
+    let insertedTickers = 0;
+    let savedSummary = "";
 
+    // Reference to the tickers collection
+    const tickersCollection = db.collection('tickers');
+
+    // Collect top 10 article titles
+    const topTitles = articles.slice(0, 10).map(article => ({ title: article.title }));
+
+    // Get tickers from the top 10 article titles
+    const tickers = await getRelevantTickersFromHeadlines(topTitles);
+
+    // Store articles
     for (const article of articles) {
-      const exists = await articlesCollection.findOne({ link: article.link });
-      if (exists) continue;
-
-      const embedded = await embedItem(article);
-      await articlesCollection.insertOne(embedded);
-      inserted++;
+      const articleExists = await articlesCollection.findOne({ link: article.link });
+      if (!articleExists) {
+        const embedded = await embedItem(article);
+        await articlesCollection.insertOne(embedded);
+        insertedArticles++;
+      }
     }
 
-    res.json({ message: `✅ Inserted ${inserted} new articles.` });
+    // Replace existing tickers with new ones only if tickers are valid
+    if (tickers && Array.isArray(tickers) && tickers.length > 0) {
+      // Clear the existing tickers collection
+      await tickersCollection.deleteMany({});
+
+      // Insert new tickers
+      const newTickers = tickers.map(ticker => ({
+        ticker,
+        timestamp: new Date(), // Current date and time: 2025-06-15T03:07:00Z
+        source: 'getRelevantTickersFromHeadlines',
+        relatedTitles: topTitles.map(t => t.title)
+      }));
+      await tickersCollection.insertMany(newTickers);
+      insertedTickers = newTickers.length;
+    }
+
+    // Generate and store summary based on top 10 articles
+    const summaryText = await getAnswerFromArticle(topTitles.map(t => t.title).join(' '), "Provide a summary of the main points from the articles.");
+    if (summaryText) {
+      const summariesCollection = db.collection('summaries');
+      await summariesCollection.deleteMany({});
+      const summaryDoc = {
+        summary: JSON.parse(summaryText),
+        articles: topTitles.map(t => t.title).join(' '),
+        timestamp: new Date(), // Current date and time: 2025-06-15T03:07:00Z
+        source: 'gemini-2.0-flash-lite'
+      };
+      await summariesCollection.insertOne(summaryDoc);
+      savedSummary = summaryDoc;
+    }
+
+    res.json({
+      message: `✅ Inserted ${insertedArticles}  new articles , summary ${JSON.stringify(savedSummary)} and ${insertedTickers} new tickers.`
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong" });

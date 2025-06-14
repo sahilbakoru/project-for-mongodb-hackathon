@@ -1,61 +1,84 @@
+import express from "express";
+import fetch from "node-fetch";
+import { XMLParser } from "fast-xml-parser";
 import { GoogleGenAI } from "@google/genai";
+import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
+import { startOfDay, endOfDay } from "date-fns";
+import { parseGoogleNewsRSS } from './utils/parseGoogleNewsRSS.js';
+import {getRelevantTickersFromHeadlines} from './utils/getRelevantTickersFromHeadlines.js';
 
+import "chalkless";
+import cors from "cors";
 dotenv.config();
-
+const app = express();
+app.use(cors());
+const PORT =  3003;
+const mongoClient = new MongoClient(process.env.MONGODB_URI);
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const db = mongoClient.db("NewsViz");
+const rssUrl = "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen";
 
-async function getRelevantTickersFromHeadlines(articles) {
-  const top10Titles = articles.slice(0, 10).map((a, i) => ` ${a.title}`).join('\n');
 
-  const prompt = `
-Based on the following news headlines, return at least 8 to  10, only the stock ticker symbols that are most relevant. 
-Output strictly as a JavaScript array. No explanation or extra text.
+async function getFeedItems() {
+  const parsed = await parseGoogleNewsRSS(rssUrl);
+  return parsed.slice(0, 6); // Limit to 3 for now
+}
 
-Headlines:
-${top10Titles}
-`;
+async function getAnswerFromArticle(text,query) {
+  const prompt = `Analyze the following Data : ${text}  and based on that, answer the query:  ${query} , in less than 100 words and in simple language`;
 
   try {
     const res = await ai.models.generateContent({
       model: "gemini-2.0-flash-lite",
       contents: prompt,
     });
-
-    const raw = res.text.trim();
-    const match = raw.match(/\[.*?\]/s); // find array
-    const tickers = match ? JSON.parse(match[0]) : [];
-
-    console.log("📊 Relevant Tickers:", tickers);
-    return tickers;
+    // const cleaned = cleanJsonString(res.text);
+    console.log(res.text)
+    return JSON.stringify(res.text);
   } catch (err) {
-    console.error("❌ Failed to extract tickers:", err);
-    return [];
+    console.log("❌ failed:", err);
+    return null;
   }
 }
 
-// Sample RSS-style data
-const mockArticles = [
-  { title: "S&P 500 closes higher on Thursday, lifted by Oracle rally and favorable inflation report: Live updates" },
-  { title: "FTC May Impose Political Bias Rule on Omnicom and Interpublic Merger" },
-  { title: "Chime valued at $18.4 billion as shares soar in Nasdaq debut" },
-  { title: "Trump says he may ‘have to force’ interest rate change in attack on Powell" },
-  { title: "Dollar slides to three-year low while FTSE 100 hits record high" },
-  { title: "Cyberattack on grocery wholesaler empties shelves at some Twin Cities stores" },
-  { title: "Why Rare Earths Are China’s Trump Card in Trade War With US" },
-  { title: "US business logistics costs rise to $2.58 trn in 2025" },
-  { title: "AI Stocks Face 'Show Me' Moment. Siri A 'No Show' At Apple Conference." },
-  { title: "Several US Jolly rancher sweets unsafe to eat, FSA says" },
-    { title: "S&P 500 closes higher on Thursday, lifted by Oracle rally and favorable inflation report: Live updates" },
-  { title: "FTC May Impose Political Bias Rule on Omnicom and Interpublic Merger" },
-  { title: "Chime valued at $18.4 billion as shares soar in Nasdaq debut" },
-  { title: "Trump says he may ‘have to force’ interest rate change in attack on Powell" },
-  { title: "Dollar slides to three-year low while FTSE 100 hits record high" },
-  { title: "Cyberattack on grocery wholesaler empties shelves at some Twin Cities stores" },
-  { title: "Why Rare Earths Are China’s Trump Card in Trade War With US" },
-  { title: "US business logistics costs rise to $2.58 trn in 2025" },
-  { title: "AI Stocks Face 'Show Me' Moment. Siri A 'No Show' At Apple Conference." },
-  { title: "Several US Jolly rancher sweets unsafe to eat, FSA says" },
-];
+app.post("/api/generate-summary", async (req, res) => {
+  console.log('generate summary hit at /api/generate-summary');
+  try {
+    const articles = await getFeedItems();
+    const topTitles = articles.slice(0, 10).map(article => article.title).join(' ');
 
-getRelevantTickersFromHeadlines(mockArticles);
+    // Query for summary
+    const query = "Provide a summary of the main points from the articles.";
+
+    // Generate summary using Gemini model
+    const summaryText = await getAnswerFromArticle(topTitles, query);
+    if (!summaryText) {
+      return res.status(500).json({ error: "Failed to generate summary" });
+    }
+
+    // Reference to the summaries collection
+    const summariesCollection = db.collection('summaries');
+
+    // Save summary to summaries collection
+    const summaryDoc = {
+      summary: JSON.parse(summaryText),
+      articles: topTitles,
+      timestamp: new Date(), // Current date and time: 2025-06-15T02:54:00Z
+      source: 'gemini-2.0-flash-lite'
+    };
+    await summariesCollection.insertOne(summaryDoc);
+
+    res.json({
+      message: "✅ Summary generated and saved successfully",
+      summary: JSON.parse(summaryText)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong" });
+  }
+});
+
+mongoClient.connect().then(() => {
+  app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));
+});

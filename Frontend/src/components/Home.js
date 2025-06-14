@@ -1,16 +1,16 @@
-import React, { useEffect, useState, useRef } from 'react';
-import '../styles.css';
-import styles from './BusinessNews.module.css';
-import Chart from 'react-apexcharts';
-import { useNavigate } from 'react-router-dom';
-import { decode } from 'he';
-
+import React, { useEffect, useState, useRef } from "react";
+import "../styles.css";
+import styles from "./BusinessNews.module.css";
+import Chart from "react-apexcharts";
+import { useNavigate } from "react-router-dom";
+import { decode } from "he";
+import ReactMarkdown from "react-markdown";
 const stockData = [
-  { symbol: 'AAPL', price: 175.3, change: 2.5 },
-  { symbol: 'GOOGL', price: 2750.15, change: -15.75 },
-  { symbol: 'MSFT', price: 305.5, change: 1.2 },
-  { symbol: 'AMZN', price: 3400.8, change: -50.3 },
-  { symbol: 'TSLA', price: 220.75, change: 5.1 },
+  { symbol: "AAPL", price: 175.3, change: 2.5 },
+  { symbol: "GOOGL", price: 2750.15, change: -15.75 },
+  { symbol: "MSFT", price: 305.5, change: 1.2 },
+  { symbol: "AMZN", price: 3400.8, change: -50.3 },
+  { symbol: "TSLA", price: 220.75, change: 5.1 },
 ];
 
 function Home() {
@@ -20,44 +20,62 @@ function Home() {
   const [articles, setArticles] = useState([]);
   const [aiAnswer, setAiAnswer] = useState(null); // New state for AI answer
   const [isLoading, setIsLoading] = useState(true);
-  const [query, setQuery] = useState('');
-  const BASE_URL = 'http://localhost:3000';
+  const [tickers, setTickers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [summary, setSummary] = useState(null);
+  const [error, setError] = useState(null);
+  const [query, setQuery] = useState("");
+  const BASE_URL = "http://localhost:3000";
 
   const [state, setState] = useState({
     series: [
       {
         data: [
-          { x: 'Optimistic', y: 0 },
-          { x: 'Critical', y: 0 },
-          { x: 'Neutral', y: 0 },
-          { x: 'Other', y: 0 },
-          { x: 'Anticipation', y: 0 },
-          { x: 'Surprise', y: 0 },
+          { x: "Optimistic", y: 0 },
+          { x: "Critical", y: 0 },
+          { x: "Neutral", y: 0 },
+          { x: "Other", y: 0 },
+          { x: "Anticipation", y: 0 },
+          { x: "Surprise", y: 0 },
         ],
       },
     ],
     options: {
       legend: { show: false },
-      colors: ['rgb(193, 52, 85)', 'rgb(193, 58, 137)', 'rgb(24, 74, 113)', 'rgb(64, 10, 65)', 'rgb(173, 74, 41)', 'rgb(133, 102, 178)'],
+      colors: [
+        "rgb(193, 52, 85)",
+        "rgb(193, 58, 137)",
+        "rgb(24, 74, 113)",
+        "rgb(64, 10, 65)",
+        "rgb(173, 74, 41)",
+        "rgb(133, 102, 178)",
+      ],
       plotOptions: { treemap: { distributed: true, enableShades: false } },
-      chart: { height: '100%', type: 'treemap' },
+      chart: { height: "100%", type: "treemap" },
       title: {
         text: "Today's Market Mood",
-        align: 'center',
-        style: { fontSize: '24px', fontWeight: 'bold', color: 'rgba(0, 0, 0, 0.87)' },
+        align: "center",
+        style: {
+          fontSize: "24px",
+          fontWeight: "bold",
+          color: "rgba(0, 0, 0, 0.87)",
+        },
       },
     },
     responsive: [
       {
         breakpoint: 1200,
-        options: { chart: { height: '100%' }, plotOptions: { treemap: { distributed: true } } },
+        options: {
+          chart: { height: "100%" },
+          plotOptions: { treemap: { distributed: true } },
+        },
       },
       {
         breakpoint: 480,
         options: {
-          chart: { height: '100%' },
+          chart: { height: "100%" },
           plotOptions: { treemap: { distributed: true } },
-          dataLabels: { style: { fontSize: '10px' } },
+          dataLabels: { style: { fontSize: "10px" } },
         },
       },
     ],
@@ -71,10 +89,10 @@ function Home() {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const data = await res.json();
-      console.log('Emotion API response:', data);
+      console.log("Emotion API response:", data);
       return data;
     } catch (error) {
-      console.error('Error fetching emotion data:', error);
+      console.error("Error fetching emotion data:", error);
       return null;
     }
   }
@@ -89,7 +107,7 @@ function Home() {
       const data = await res.json();
       return data;
     } catch (error) {
-      console.error('Error fetching articles:', error);
+      console.error("Error fetching articles:", error);
       return [];
     }
   }
@@ -97,22 +115,24 @@ function Home() {
   // Fetch search results
   async function searchArticles(query) {
     try {
-      const res = await fetch(`${BASE_URL}/api/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(
+        `${BASE_URL}/api/search?q=${encodeURIComponent(query)}`
+      );
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const data = await res.json();
-      console.log('Search API response:', data);
+      console.log("Search API response:", data);
       return data; // Expecting { articles, aiAnswer }
     } catch (error) {
-      console.error('Error searching articles:', error);
+      console.error("Error searching articles:", error);
       return { articles: [], aiAnswer: null };
     }
   }
 
   // Load articles (default or search results)
   const loadArticles = async () => {
-    console.log('loadArticles called, query:', query);
+    console.log("loadArticles called, query:", query);
     setIsLoading(true);
     let result;
     if (query) {
@@ -130,7 +150,7 @@ function Home() {
               article.link &&
               article.pubDate &&
               article.emotionScores &&
-              typeof article.emotionScores.impactScore === 'number'
+              typeof article.emotionScores.impactScore === "number"
           )
           .map((article) => ({
             ...article,
@@ -165,17 +185,21 @@ function Home() {
   const handleArticleClick = (article) => {
     if (!article) return;
     navigate(
-  `/article?title=${encodeURIComponent(article.title || '')}&description=${encodeURIComponent(
-    article.description || ''
-  )}&link=${encodeURIComponent(article.link || '')}&pubDate=${encodeURIComponent(
-    article.pubDate || ''
-  )}&sourceUrl=${encodeURIComponent(article.sourceUrl || '')}&impactScore=${
-    article.emotionScores?.impactScore || 0
-  }&toneBreakdown=${encodeURIComponent(JSON.stringify(article.emotionScores?.toneBreakdown || {}))}`
-);
+      `/article?title=${encodeURIComponent(
+        article.title || ""
+      )}&description=${encodeURIComponent(
+        article.description || ""
+      )}&link=${encodeURIComponent(
+        article.link || ""
+      )}&pubDate=${encodeURIComponent(
+        article.pubDate || ""
+      )}&sourceUrl=${encodeURIComponent(article.sourceUrl || "")}&impactScore=${
+        article.emotionScores?.impactScore || 0
+      }&toneBreakdown=${encodeURIComponent(
+        JSON.stringify(article.emotionScores?.toneBreakdown || {})
+      )}`
+    );
   };
-
-  
 
   // Handle stock click
   const handleStockClick = (stock) => {
@@ -195,12 +219,12 @@ function Home() {
           series: [
             {
               data: [
-                { x: 'Optimistic', y: emotionData.avgOptimistic },
-                { x: 'Critical', y: emotionData.avgCritical },
-                { x: 'Neutral', y: emotionData.avgNeutral },
-                { x: 'Other', y: emotionData.avgOther },
-                { x: 'Anticipation', y: emotionData.avgAnticipation },
-                { x: 'Surprise', y: emotionData.avgSurprise },
+                { x: "Optimistic", y: emotionData.avgOptimistic },
+                { x: "Critical", y: emotionData.avgCritical },
+                { x: "Neutral", y: emotionData.avgNeutral },
+                { x: "Other", y: emotionData.avgOther },
+                { x: "Anticipation", y: emotionData.avgAnticipation },
+                { x: "Surprise", y: emotionData.avgSurprise },
               ],
             },
           ],
@@ -208,14 +232,51 @@ function Home() {
       }
       loadArticles();
     };
+    const fetchTickers = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${BASE_URL}/api/tickers`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch tickers");
+        }
+        const data = await response.json();
+        console.log("Tickers fetched:", data);
+        setTickers(data);
+      } catch (err) {
+        setError(err.message);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    const fetchSummary = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${BASE_URL}/api/summaries`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch summary");
+        }
+        const data = await response.json();
+        console.log("Summary fetched:", data);
+        setSummary(data);
+      } catch (err) {
+        setError(err.message);
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSummary();
+    fetchTickers();
     loadData();
   }, []);
 
   return (
     <div className={styles.body}>
       <div className={styles.container}>
-        <div style={{ borderBottom: '2px solid black' }}>
-          
+        <div style={{ borderBottom: "2px solid black" }}>
           <form className={styles.searchBar} onSubmit={handleSearchSubmit}>
             <input
               className={styles.searchInput}
@@ -233,61 +294,80 @@ function Home() {
               options={state.options}
               series={state.series}
               type="treemap"
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: "100%", height: "100%" }}
             />
           </div>
+          <div>
           <div className={styles.stockTabs}>
-            {stockData.map((stock) => (
+            {tickers.map((stock) => (
               <div
-                key={stock.symbol}
-                className={`${styles.stockTab} ${selectedStock === stock.symbol ? styles.selected : ''}`}
+                key={stock.ticker}
+                className={`${styles.stockTab} ${
+                  selectedStock === stock.ticker ? styles.selected : ""
+                }`}
                 onClick={() => handleStockClick(stock)}
-                style={{
-                  backgroundColor: stock.change > 0 ? '#e0f7e0' : stock.change < 0 ? '#ffe0e0' : '#f0f0f0',
-                }}
               >
-                <span>
-                  {`${stock.symbol} $${stock.price.toFixed(2)}`}
-                  {stock.change > 0 ? (
-                    <span className={styles.up}> ↑{stock.change.toFixed(2)}</span>
-                  ) : (
-                    <span className={styles.down}> ↓{Math.abs(stock.change).toFixed(2)}</span>
-                  )}
-                </span>
+                <span>{`${stock.ticker}`}</span>
               </div>
             ))}
           </div>
+          </div>
           {aiAnswer && (
             <div className={styles.aiResponse}>
-              <h3>˙✦AI Answer</h3>
+              <h3>
+                <ReactMarkdown>˙✦AI Answer</ReactMarkdown>
+              </h3>
               <p>{aiAnswer}</p>
             </div>
           )}
+          {!loading && !error && summary && (
+            <div className={styles.summary}>
+              <h2>Today's Summary</h2>
+              <ReactMarkdown>{summary[0]?.summary}</ReactMarkdown>
+            </div>
+          )}
+
           {isLoading ? (
             <div className={styles.loading}>
-                             <span>Loading recommendations...</span>
-                           </div>
+              <span>Loading articles...</span>
+            </div>
           ) : articles.length === 0 ? (
             <div>No articles available.</div>
           ) : (
             articles.map((article) => (
-              <div key={article._id} className={styles.newsArticle} onClick={() => handleArticleClick(article)}>
+              <div
+                key={article._id}
+                className={styles.newsArticle}
+                onClick={() => handleArticleClick(article)}
+              >
                 <h3>{decode(article.title)}</h3>
-                <p>{article?.description?.length > 100 ? `${decode(article?.description?.slice(0, 100))}…` : article?.description}</p>
-               <div className={styles.sourceBadge}>
-  {article?.sourceUrl?.replace(/^https?:\/\//, '')}
-</div>
+                <p>
+                  {article?.description?.length > 100
+                    ? `${decode(article?.description?.slice(0, 100))}…`
+                    : article?.description}
+                </p>
+                <div className={styles.sourceBadge}>
+                  {article?.sourceUrl?.replace(/^https?:\/\//, "")}
+                </div>
                 <small>
-                  Published: {new Date(article?.pubDate).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                  Published:{" "}
+                  {new Date(article?.pubDate).toLocaleString("en-IN", {
+                    timeZone: "Asia/Kolkata",
+                  })}
                 </small>
                 <p className={styles.impactScore}>
-                  Impact Score:{' '}
+                  Impact Score:{" "}
                   <span
                     className={styles.icon}
-                    style={{ color: article?.emotionScores?.impactScore > 50 ? 'rgb(4, 177, 24)' : '#757575' }}
+                    style={{
+                      color:
+                        article?.emotionScores?.impactScore > 50
+                          ? "rgb(4, 177, 24)"
+                          : "#757575",
+                    }}
                   >
                     ★
-                  </span>{' '}
+                  </span>{" "}
                   {article?.emotionScores?.impactScore}%
                 </p>
               </div>
