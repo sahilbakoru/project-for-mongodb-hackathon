@@ -203,7 +203,10 @@ function Home() {
 
   // Handle stock click
   const handleStockClick = (stock) => {
+    console.log("Stock clicked:", stock);
     setSelectedStock(stock.symbol === selectedStock ? null : stock.symbol);
+    const searchUrl = `https://www.google.com/search?q=${stock.ticker}+stock`;
+   window.open(searchUrl, '_blank');
   };
 
   // Load data on mount
