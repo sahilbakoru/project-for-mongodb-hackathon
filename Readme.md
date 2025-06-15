@@ -115,7 +115,7 @@ MONGODB_URI=your_mongodb_connection_url`
 
 Terminal 1 - Start backend
 cd backend
-`node index.js`
+`npm run start`
 
 #Terminal 2 - Start frontend
 cd frontend
