@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import { startOfDay, endOfDay } from "date-fns";
 import "chalkless";
 import cors from "cors";
+import delay from 'delay';
 import { parseGoogleNewsRSS } from './utils/parseGoogleNewsRSS.js';
 import {getRelevantTickersFromHeadlines} from './utils/getRelevantTickersFromHeadlines.js';
  
@@ -91,7 +92,8 @@ async function embedQuery(text) {
 
 async function getFeedItems() {
   const parsed = await parseGoogleNewsRSS(rssUrl);
-  return parsed.slice(0, 6); // Limit to 3 for now
+    // return parsed.slice(0, 6);
+  return parsed
 }
 
 async function embedItem(item) {
@@ -122,7 +124,7 @@ async function embedItem(item) {
 // Routes
 app.get("/api/articles", async (req, res) => {
   console.log("all articles fetched api hit ")
-  const articles = await articlesCollection.find({}).sort({ pubDate: -1 }).limit(20).toArray();
+  const articles = await articlesCollection.find({}).sort({ pubDate: -1 }).limit(50).toArray();
   res.json(articles);
   // console.log(articles)
 });
@@ -219,42 +221,31 @@ app.get("/api/search", async (req, res) => {
   });
 });
 
-app.post("/api/fetch-and-store", async (req, res) => {
+app.all("/api/fetch-and-store", async (req, res) => {
+  //  if (req.query.secret !== process.env.JOB_SECRET) {
+  //   return res.status(403).json({ error: "Unauthorized" });
+  // }
   console.log('fetch and store hit at /api/fetch-and-store');
   try {
     const articles = await getFeedItems();
+
+    // Clean slate before inserting new ones
+    await articlesCollection.deleteMany({});
+    await tickersCollection.deleteMany({});
+    console.log('Cleared existing articles and tickers collections.');
+    console.log(`Fetched ${articles.length} articles from RSS feed.`);
+
     let insertedArticles = 0;
     let insertedTickers = 0;
     let savedSummary = "";
 
-    // Reference to the tickers collection
-    const tickersCollection = db.collection('tickers');
+    const topTitles = articles.map(article => ({ title: article.title }));
 
-    // Collect top 10 article titles
-    const topTitles = articles.slice(0, 10).map(article => ({ title: article.title }));
-
-    // Get tickers from the top 10 article titles
     const tickers = await getRelevantTickersFromHeadlines(topTitles);
-
-    // Store articles
-    for (const article of articles) {
-      const articleExists = await articlesCollection.findOne({ link: article.link });
-      if (!articleExists) {
-        const embedded = await embedItem(article);
-        await articlesCollection.insertOne(embedded);
-        insertedArticles++;
-      }
-    }
-
-    // Replace existing tickers with new ones only if tickers are valid
     if (tickers && Array.isArray(tickers) && tickers.length > 0) {
-      // Clear the existing tickers collection
-      await tickersCollection.deleteMany({});
-
-      // Insert new tickers
       const newTickers = tickers.map(ticker => ({
         ticker,
-        timestamp: new Date(), // Current date and time: 2025-06-15T03:07:00Z
+        timestamp: new Date(),
         source: 'getRelevantTickersFromHeadlines',
         relatedTitles: topTitles.map(t => t.title)
       }));
@@ -262,7 +253,22 @@ app.post("/api/fetch-and-store", async (req, res) => {
       insertedTickers = newTickers.length;
     }
 
-    // Generate and store summary based on top 10 articles
+    // Process articles in batches of 4 with 1-minute delay
+    for (let i = 0; i < articles.length; i += 4) {
+      const batch = articles.slice(i, i + 4);
+      for (const article of batch) {
+        console.log(`Processing article ${i + 1}/${articles.length}: ${article.title}`);
+        const embedded = await embedItem(article);
+        await articlesCollection.insertOne(embedded);
+        insertedArticles++;
+      }
+      if (i + 4 < articles.length) {
+        console.log('⏳ Waiting 1 minute before next batch...');
+        await delay(60000);
+      }
+    }
+
+    // Generate and store summary
     const summaryText = await getAnswerFromArticle(topTitles.map(t => t.title).join(' '), "Provide a summary of the main points from the articles.");
     if (summaryText) {
       const summariesCollection = db.collection('summaries');
@@ -270,7 +276,7 @@ app.post("/api/fetch-and-store", async (req, res) => {
       const summaryDoc = {
         summary: JSON.parse(summaryText),
         articles: topTitles.map(t => t.title).join(' '),
-        timestamp: new Date(), // Current date and time: 2025-06-15T03:07:00Z
+        timestamp: new Date(),
         source: 'gemini-2.0-flash-lite'
       };
       await summariesCollection.insertOne(summaryDoc);
@@ -278,7 +284,7 @@ app.post("/api/fetch-and-store", async (req, res) => {
     }
 
     res.json({
-      message: `✅ Inserted ${insertedArticles}  new articles , summary ${JSON.stringify(savedSummary)} and ${insertedTickers} new tickers.`
+      message: `✅ Inserted ${insertedArticles} new articles, summary ${JSON.stringify(savedSummary)} and ${insertedTickers} new tickers.`
     });
   } catch (err) {
     console.error(err);

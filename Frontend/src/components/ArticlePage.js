@@ -9,7 +9,7 @@ const ArticlePage = () => {
   const [recommendedArticles, setRecommendedArticles] = useState([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] =
     useState(true);
-  const BASE_URL = "https://project-for-mongodb-hackathon.onrender.com";
+const BASE_URL =  process.env.REACT_APP_TEST  ==  "true" ? process.env.REACT_APP_BACKEND_API_URL : "https://project-for-mongodb-hackathon.onrender.com";
 
   // Decode URL parameters
   const title = decode(searchParams.get("title") || "");

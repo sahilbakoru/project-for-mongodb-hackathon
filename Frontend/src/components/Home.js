@@ -25,7 +25,8 @@ function Home() {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
-  const BASE_URL = "https://project-for-mongodb-hackathon.onrender.com";
+  const BASE_URL =  process.env.REACT_APP_TEST  ==  "true" ? process.env.REACT_APP_BACKEND_API_URL : "https://project-for-mongodb-hackathon.onrender.com";
+  console.log("BASE_URL:", BASE_URL);
 
   const [state, setState] = useState({
     series: [

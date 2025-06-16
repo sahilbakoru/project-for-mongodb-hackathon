@@ -6,7 +6,7 @@ dotenv.config();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export async function getRelevantTickersFromHeadlines(articles) {
-  const top10Titles = articles.slice(0, 10).map((a, i) => ` ${a.title}`).join('\n');
+  const top10Titles = articles.slice(0, 15).map((a, i) => ` ${a.title}`).join('\n');
 
   const prompt = `
 Based on the following news headlines, return at least 8 to  10, only the stock ticker symbols that are most relevant. 
