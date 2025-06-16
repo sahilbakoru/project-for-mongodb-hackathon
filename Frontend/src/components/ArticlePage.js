@@ -9,7 +9,7 @@ const ArticlePage = () => {
   const [recommendedArticles, setRecommendedArticles] = useState([]);
   const [isLoadingRecommendations, setIsLoadingRecommendations] =
     useState(true);
-  const BASE_URL = "http://localhost:3000";
+  const BASE_URL = "https://project-for-mongodb-hackathon.onrender.com";
 
   // Decode URL parameters
   const title = decode(searchParams.get("title") || "");

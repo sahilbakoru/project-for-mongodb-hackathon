@@ -25,7 +25,7 @@ function Home() {
   const [summary, setSummary] = useState(null);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
-  const BASE_URL = "http://localhost:3000";
+  const BASE_URL = "https://project-for-mongodb-hackathon.onrender.com";
 
   const [state, setState] = useState({
     series: [
