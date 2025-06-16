@@ -149,6 +149,13 @@ app.get("/api/emotion-today", async (req, res) => {
 
   res.json(result[0] || {});
 });
+app.get('/', (req, res) => {
+  res.send('Hello, World!');
+});
+
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
 
 app.get("/api/tickers", async (req, res) => {
   console.log('Fetching all tickers from /api/tickers');
