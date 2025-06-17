@@ -221,7 +221,7 @@ app.get("/api/search", async (req, res) => {
   });
 });
 
-app.all("/api/fetch-and-store", async (req, res) => {
+app.get("/api/fetch-and-store", async (req, res) => {
   //  if (req.query.secret !== process.env.JOB_SECRET) {
   //   return res.status(403).json({ error: "Unauthorized" });
   // }
